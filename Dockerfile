@@ -13,11 +13,6 @@ WORKDIR /go/src/github.com/topfreegames/mqtt-history
 RUN glide install
 RUN go install github.com/topfreegames/mqtt-history
 
-ENV MQTTHISTORY_MQTTSERVER_HOST localhost
-ENV MQTTHISTORY_MQTTSERVER_PORT 1883
-ENV MQTTHISTORY_MQTTSERVER_USER admin
-ENV MQTTHISTORY_MQTTSERVER_PASS admin
-
 ENV MQTTHISTORY_ELASTICSEARCH_HOST http://localhost:9200
 ENV MQTTHISTORY_ELASTICSEARCH_SNIFF false
 
