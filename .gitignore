@@ -28,4 +28,5 @@ _testmain.go
 *.test
 *.prof
 
+vendor/
 tmp/
