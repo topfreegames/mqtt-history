@@ -39,7 +39,7 @@ func initConfig() {
 	if CfgFile != "" { // enable ability to specify config file via flag
 		viper.SetConfigFile(CfgFile)
 	}
-	viper.SetEnvPrefix("mqtt-history")
+	viper.SetEnvPrefix("mqtthistory")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AddConfigPath("$HOME") // adding home directory as first search path
 	viper.AutomaticEnv()         // read in environment variables that match
