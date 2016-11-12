@@ -3,31 +3,22 @@
 [![Build Status](https://travis-ci.org/topfreegames/mqtt-history.svg?branch=master)](https://travis-ci.org/topfreegames/mqtt-history)
 [![Coverage Status](https://coveralls.io/repos/github/topfreegames/mqtt-history/badge.svg?branch=master)](https://coveralls.io/github/topfreegames/mqtt-history?branch=master)
 
-A utility bot for MQTT-based chat services. MqttHistory is implemented in Go with
-support to Lua plugins.
+An MQTT-based history handler for messages recorded by [mqttbot](https://github.com/topfreegames/mqttbot) in elasticsearch
 
 
 ## Features
 
-MqttHistory is an extensible MqttHistory developed in Go with support for Lua plugins.
+MqttHistory is an extensible
 
 The bot is capable of:
-- Listening on specific routes for specific patterns to trigger Lua plugins
 - Listen to healthcheck requests
-- Accepting new plugins by adding them to the configuration file
-
-The plugins loaded by default can:
-- Persist messages to Elastic Search
 - Send history messages requested by users
-- Register users to Redis (compatible with auth-plugin for Mosquitto)
-- Add user ACL to Redis (compatible with auth-plugin for Mosquitto)
 
 ## Setup
 
 Make sure you have go installed on your machine.
 
-You also need to have access to running instances of elasticsearch, Redis
-and a mosquitto server (auth plugin (jpmens/mosquitto-auth-plug) is supported).
+You also need to have access to running instances of elasticsearch and Redis.
 
 ## Running the application
 
