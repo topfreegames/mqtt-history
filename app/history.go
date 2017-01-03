@@ -82,6 +82,12 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 		limit, err := strconv.Atoi(c.QueryParam("limit"))
 		since, err := strconv.ParseInt(c.QueryParam("since"), 10, 64)
 
+		now := int64(time.Now().Unix())
+		if since > now {
+			logger.Logger.Errorf("user %s is asking for history for topic %s with args from=%d, limit=%d and since=%d. Since is in the future, setting to 0!", userID, topic, from, limit, since)
+			since = 0
+		}
+
 		defaultLimit := 10
 		if limitFromEnv := os.Getenv("HISTORYSINCE_LIMIT"); limitFromEnv != "" {
 			defaultLimit, err = strconv.Atoi(limitFromEnv)
@@ -111,7 +117,7 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 			boolQuery := elastic.NewBoolQuery()
 			matchQuery := elastic.NewMatchPhraseQuery("topic", topic)
 			rangeQuery := elastic.NewRangeQuery("timestamp").
-				From(since * 1000). // FIXME: The client should send time in milliseconds
+				From(since * 1000).
 				To(nil).
 				IncludeLower(true).
 				IncludeUpper(true)
