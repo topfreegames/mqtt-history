@@ -207,6 +207,7 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic and since is in the future", func() {
+				g.Timeout(10 * time.Second)
 				a := GetDefaultTestApp()
 				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testId)
@@ -221,7 +222,7 @@ func TestHistoryHandler(t *testing.T) {
 				testMessage := Message{}
 				second := int64(1000)
 				baseTime := now - (second * 70)
-				for i := 0; i < 30; i++ {
+				for i := 0; i < 150; i++ {
 					messageTime := baseTime + 1*second
 					testMessage = Message{
 						Timestamp: msToTime(messageTime),
@@ -236,7 +237,7 @@ func TestHistoryHandler(t *testing.T) {
 				refreshIndex()
 
 				path := fmt.Sprintf(
-					"/historysince/%s?userid=test:test&since=%d&limit=100",
+					"/historysince/%s?userid=test:test&since=%d",
 					topic, ((time.Now().UnixNano() / 100000000) * 200), // now
 				)
 
@@ -246,7 +247,7 @@ func TestHistoryHandler(t *testing.T) {
 				var messages []Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-				Expect(len(messages)).To(Equal(30))
+				Expect(len(messages)).To(Equal(100))
 				var message Message
 				for i := 0; i < len(messages); i++ {
 					message = messages[i]

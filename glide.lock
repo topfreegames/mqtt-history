@@ -1,5 +1,5 @@
-hash: e78be4f3be5bdec6d2a4ffbcb7ef516c06c5e1db2103ecb007f147f9a065829d
-updated: 2016-11-01T11:33:30.787713559-02:00
+hash: 0bfbb38b91b88fccd364d0b1c80f8edaf8422ff0c2aab2a642cca54964102e2e
+updated: 2017-01-04T09:58:56.461623764-02:00
 imports:
 - name: github.com/ajg/form
   version: 523a5da1a92f01b01f840b61689c0340a0243532
@@ -7,10 +7,9 @@ imports:
   version: b4bfe0c50fea948dcbf3966e120996d6607bbd89
 - name: github.com/eclipse/paho.mqtt.golang
   version: 13afcbe8e41508479762a90e9242577210c2ca8d
-  subpackages:
-  - packets
 - name: github.com/franela/goblin
-  version: efa9910a3ea4ccb7ee4b977571318af2e51ba05f
+  version: e1d62a381788849230ccae88ebf522ba59753477
+  repo: git@github.com:franela/goblin.git
 - name: github.com/fsnotify/fsnotify
   version: f12c6236fe7b5cf6bcf30e5935d08cb079d78334
 - name: github.com/garyburd/redigo
@@ -120,10 +119,6 @@ imports:
   version: 3b874956e03f1636d171bda64b130f9135f42cff
 - name: github.com/yuin/gopher-lua
   version: d0d5dd3565a9f3c86ff5bc42a0b1cc9e5bfcf55e
-  subpackages:
-  - ast
-  - parse
-  - pm
 - name: golang.org/x/crypto
   version: 986d3313588aa5c68f1df95eac956f79cf3b2c01
   subpackages:
@@ -137,7 +132,6 @@ imports:
   subpackages:
   - context
   - context/ctxhttp
-  - websocket
 - name: golang.org/x/sys
   version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
   subpackages:

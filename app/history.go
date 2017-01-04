@@ -86,6 +86,7 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 		if since > now {
 			logger.Logger.Errorf("user %s is asking for history for topic %s with args from=%d, limit=%d and since=%d. Since is in the future, setting to 0!", userID, topic, from, limit, since)
 			since = 0
+			limit = 100
 		}
 
 		defaultLimit := 10
