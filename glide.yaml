@@ -15,9 +15,6 @@ import:
   subpackages:
   - pbkdf2
 - package: github.com/franela/goblin
-  # https://github.com/franela/goblin/commit/b50404691661f34b0cea76cb2704fe5c0ccec90f
-  version: e1d62a381788849230ccae88ebf522ba59753477 # Version that allows using timeout per it block
-  repo: git@github.com:franela/goblin.git
 - package: github.com/onsi/gomega
 - package: github.com/satori/go.uuid
 - package: github.com/gavv/httpexpect
