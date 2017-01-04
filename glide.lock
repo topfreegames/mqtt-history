@@ -9,7 +9,6 @@ imports:
   version: 13afcbe8e41508479762a90e9242577210c2ca8d
 - name: github.com/franela/goblin
   version: e1d62a381788849230ccae88ebf522ba59753477
-  repo: git@github.com:franela/goblin.git
 - name: github.com/fsnotify/fsnotify
   version: f12c6236fe7b5cf6bcf30e5935d08cb079d78334
 - name: github.com/garyburd/redigo
