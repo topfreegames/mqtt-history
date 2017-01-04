@@ -217,21 +217,28 @@ func TestHistoryHandler(t *testing.T) {
 				_, err = rc.Pool.Get().Do("set", authStr, 2)
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
-					Timestamp: time.Now(),
-					Payload:   "{\"test1\":\"test2\"}",
-					Topic:     topic,
+				now := time.Now().UnixNano() / 1000000
+				testMessage := Message{}
+				second := int64(1000)
+				baseTime := now - (second * 70)
+				for i := 0; i < 30; i++ {
+					messageTime := baseTime + 1*second
+					testMessage = Message{
+						Timestamp: msToTime(messageTime),
+						Payload:   "{\"test1\":\"test2\"}",
+						Topic:     topic,
+					}
+					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+					Expect(err).To(BeNil())
 				}
-
-				path := fmt.Sprintf(
-					"/historysince/%s?userid=test:test&since=%d",
-					topic, ((time.Now().UnixNano() / 100000000) * 200), // now
-				)
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
-				Expect(err).To(BeNil())
 
 				// Update indexes
 				refreshIndex()
+
+				path := fmt.Sprintf(
+					"/historysince/%s?userid=test:test&since=%d&limit=100",
+					topic, ((time.Now().UnixNano() / 100000000) * 200), // now
+				)
 
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
@@ -239,7 +246,7 @@ func TestHistoryHandler(t *testing.T) {
 				var messages []Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-				Expect(len(messages)).To(Equal(1))
+				Expect(len(messages)).To(Equal(30))
 				var message Message
 				for i := 0; i < len(messages); i++ {
 					message = messages[i]
