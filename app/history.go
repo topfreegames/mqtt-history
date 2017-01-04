@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/logger"
@@ -84,7 +86,16 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 
 		now := int64(time.Now().Unix())
 		if since > now {
-			logger.Logger.Errorf("user %s is asking for history for topic %s with args from=%d, limit=%d and since=%d. Since is in the future, setting to 0!", userID, topic, from, limit, since)
+			errorString := fmt.Sprintf("user %s is asking for history for topic %s with args from=%d, limit=%d and since=%d. Since is in the future, setting to 0!", userID, topic, from, limit, since)
+
+			logger.Logger.Errorf(errorString)
+
+			tags := map[string]string{
+				"source": "app",
+				"type":   "Since is furure",
+				"url":    c.Request().URI(),
+			}
+			raven.CaptureError(errors.New(errorString), tags)
 			since = 0
 			limit = 100
 		}
