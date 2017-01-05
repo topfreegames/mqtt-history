@@ -91,10 +91,12 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 			logger.Logger.Errorf(errorString)
 
 			tags := map[string]string{
-				"source": "app",
-				"type":   "Since is furure",
-				"url":    c.Request().URI(),
+				"source":     "app",
+				"type":       "Since is furure",
+				"url":        c.Request().URI(),
+				"user-agent": c.Request().Header().Get("User-Agent"),
 			}
+
 			raven.CaptureError(errors.New(errorString), tags)
 			since = 0
 			limit = 100
