@@ -349,6 +349,61 @@ func TestHistoryHandler(t *testing.T) {
 			})
 		})
 
+		g.It("Should retrieve only messages from the exact topic", func() {
+			a := GetDefaultTestApp()
+			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+			topic := fmt.Sprintf("chat/test_%s", testId)
+			authStr := fmt.Sprintf("test:test-%s", topic)
+			rc := redisclient.GetRedisClient("localhost", 4444, "")
+			_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
+			_, err = rc.Pool.Get().Do("set", authStr, 2)
+			Expect(err).To(BeNil())
+
+			now := time.Now().UnixNano() / 1000000
+			testMessage := Message{}
+			second := int64(1000)
+			baseTime := now - (second * 70)
+
+			messageTime := baseTime + 1*second
+			testMessage = Message{
+				Timestamp: msToTime(messageTime),
+				Payload:   "{\"test1\":\"test2\"}",
+				Topic:     topic,
+			}
+			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+			Expect(err).To(BeNil())
+
+			messageTime = baseTime + 1*second
+			testMessage = Message{
+				Timestamp: msToTime(messageTime),
+				Payload:   "{\"test1\":\"test2\"}",
+				Topic:     fmt.Sprintf("%s/moremore", topic),
+			}
+			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+			Expect(err).To(BeNil())
+
+			// Update indexes
+			refreshIndex()
+
+			path := fmt.Sprintf(
+				"/historysince/%s?userid=test:test&since=%d&limit=%d&from=%d",
+				topic, baseTime/1000, 10, 0,
+			)
+
+			status, body := Get(a, path, t)
+			g.Assert(status).Equal(http.StatusOK)
+
+			var messages []Message
+			err = json.Unmarshal([]byte(body), &messages)
+			Expect(err).To(BeNil())
+			Expect(len(messages)).To(Equal(1))
+			var message Message
+			for i := 0; i < len(messages); i++ {
+				message = messages[i]
+				Expect(message.Topic).To(Equal(topic))
+			}
+		})
+
 		g.It("Should retrieve all messages eve if limit is greater than the size of current history", func() {
 			a := GetDefaultTestApp()
 			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
