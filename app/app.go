@@ -115,7 +115,7 @@ func (app *App) configureApplication() {
 	a.Get("/healthcheck", HealthCheckHandler(app))
 	a.Get("/historysince/*", HistorySinceHandler(app))
 	a.Get("/history/*", HistoryHandler(app))
-  a.Get("/histories/*", HistoriesHandler(app))
+	a.Get("/histories/*", HistoriesHandler(app))
 	a.Get("/:other", NotFoundHandler(app))
 
 	app.RedisClient = redisclient.GetRedisClient(viper.GetString("redis.host"), viper.GetInt("redis.port"), viper.GetString("redis.password"))
