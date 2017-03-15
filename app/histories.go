@@ -26,7 +26,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		from, err := strconv.Atoi(c.QueryParam("from"))
 		limit, err := strconv.Atoi(c.QueryParam("limit"))
 		for i, topicSuffix := range topicsSuffix {
-			topics[i] = topicPrefix + topicSuffix
+			topics[i] = topicPrefix + "/" + topicSuffix
 		}
 		if limit == 0 {
 			limit = 10
