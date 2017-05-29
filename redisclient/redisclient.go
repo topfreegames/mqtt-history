@@ -29,13 +29,13 @@ func GetRedisClient(redisHost string, redisPort int, redisPass string) *RedisCli
 		client.Pool = redis.NewPool(func() (redis.Conn, error) {
 			if viper.GetString("redis.password") != "" {
 				c, err := redis.Dial("tcp", fmt.Sprintf("%s:%d", viper.GetString("redis.host"),
-					viper.GetInt("redis.port")), redis.DialPassword(viper.GetString("redis.password")))
+					viper.GetInt("redis.port")), redis.DialPassword(viper.GetString("redis.password")), redis.DialDatabase(viper.GetInt("redis.db")))
 				if err != nil {
 					logger.Logger.Error(err.Error())
 				}
 				return c, err
 			}
-			c, err := redis.Dial("tcp", redisAddress)
+			c, err := redis.Dial("tcp", redisAddress, redis.DialDatabase(viper.GetInt("redis.db")))
 			if err != nil {
 				if err != nil {
 					logger.Logger.Error(err.Error())
