@@ -11,5 +11,6 @@ redis:
   port: 4444
   password: ""
   maxPoolSize: 10
+  db: 0
 logger:
   level: "debug"
