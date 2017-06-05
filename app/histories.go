@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -10,7 +11,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/logger"
-	"gopkg.in/olivere/elastic.v3"
+	"gopkg.in/olivere/elastic.v5"
 )
 
 // HistoriesHandler is the handler responsible for sending multiples rooms history to the player
@@ -19,7 +20,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		esclient := es.GetESClient()
 		c.Set("route", "Histories")
 		topicPrefix := c.ParamValues()[0]
-		authorizedTopics := []string{}
+		authorizedTopics := []interface{}{}
 		userID := c.QueryParam("userid")
 		topicsSuffix := strings.Split(c.QueryParam("topics"), ",")
 		topics := make([]string, len(topicsSuffix))
@@ -54,13 +55,13 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		if redisResults[0] != nil && len(authorizedTopics) > 0 {
 			boolQuery := elastic.NewBoolQuery()
 			topicBoolQuery := elastic.NewBoolQuery()
-			topicBoolQuery.Should(elastic.NewTermsQuery("topic", authorizedTopics))
+			topicBoolQuery.Should(elastic.NewTermsQuery("topic", authorizedTopics...))
 			boolQuery.Must(topicBoolQuery)
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
 				searchResults, err = esclient.Search().Index("chat").Query(boolQuery).
-					Sort("timestamp", false).From(from).Size(limit).Do()
+					Sort("timestamp", false).From(from).Size(limit).Do(context.TODO())
 				return err
 			})
 

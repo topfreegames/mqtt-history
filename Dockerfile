@@ -1,4 +1,4 @@
-FROM golang:1.8-alpine
+FROM golang:1.8.3-alpine
 
 MAINTAINER TFG Co <backend@tfgco.com>
 

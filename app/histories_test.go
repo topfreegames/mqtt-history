@@ -7,6 +7,7 @@
 package app_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -71,10 +72,10 @@ func TestHistoriesHandler(t *testing.T) {
 					Topic:     topic2,
 				}
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage2).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage2).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -113,10 +114,10 @@ func TestHistoriesHandler(t *testing.T) {
 					Topic:     topic2,
 				}
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage2).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage2).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -153,10 +154,10 @@ func TestHistoriesHandler(t *testing.T) {
 					Topic:     topic2,
 				}
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage2).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage2).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()

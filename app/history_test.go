@@ -8,6 +8,7 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 
 	. "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	. "github.com/topfreegames/mqtt-history/app"
 	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/redisclient"
@@ -70,7 +71,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -130,7 +131,7 @@ func TestHistoryHandler(t *testing.T) {
 					Topic:     topic,
 				}
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -186,7 +187,7 @@ func TestHistoryHandler(t *testing.T) {
 					"/historysince/%s?userid=test:test&since=%d",
 					topic, (time.Now().UnixNano() / 1000000000), // now
 				)
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				// Update indexes
@@ -229,7 +230,7 @@ func TestHistoryHandler(t *testing.T) {
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 					Expect(err).To(BeNil())
 				}
 
@@ -278,7 +279,7 @@ func TestHistoryHandler(t *testing.T) {
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 					Expect(err).To(BeNil())
 				}
 
@@ -322,7 +323,7 @@ func TestHistoryHandler(t *testing.T) {
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 					Expect(err).To(BeNil())
 				}
 
@@ -370,7 +371,7 @@ func TestHistoryHandler(t *testing.T) {
 				Payload:   "{\"test1\":\"test2\"}",
 				Topic:     topic,
 			}
-			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 			Expect(err).To(BeNil())
 
 			messageTime = baseTime + 1*second
@@ -379,7 +380,7 @@ func TestHistoryHandler(t *testing.T) {
 				Payload:   "{\"test1\":\"test2\"}",
 				Topic:     fmt.Sprintf("%s/moremore", topic),
 			}
-			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 			Expect(err).To(BeNil())
 
 			// Update indexes
@@ -423,7 +424,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 			}
 
@@ -471,7 +472,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do()
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 			}
 

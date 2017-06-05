@@ -20,7 +20,8 @@ import:
 - package: github.com/gavv/httpexpect
 - package: github.com/ajg/form
 - package: github.com/valyala/fasthttp
-- package: gopkg.in/olivere/elastic.v3
+- package: gopkg.in/olivere/elastic.v5
+  version: ^5.0.39
 - package: github.com/uber-go/zap
 - package: github.com/uber-go/atomic
 - package: github.com/getsentry/raven-go
