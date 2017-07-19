@@ -39,19 +39,13 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			limit = 10
 		}
 
-		logger.Logger.Debugf("user %s is asking for history for topic %s with args from=%d and limit=%d", userID, topic, from, limit)
-		rc := app.RedisClient.Pool.Get()
-		defer rc.Close()
-		rc.Send("MULTI")
-		rc.Send("GET", userID)
-		rc.Send("GET", fmt.Sprintf("%s-%s", userID, topic))
-		r, err := rc.Do("EXEC")
+		authenticated, _, err := authenticate(app, userID, topic)
 		if err != nil {
 			return err
 		}
-		redisResults := (r.([]interface{}))
-		if redisResults[0] != nil && redisResults[1] != nil {
 
+		logger.Logger.Debugf("user %s is asking for history for topic %s with args from=%d and limit=%d", userID, topic, from, limit)
+		if authenticated {
 			boolQuery := elastic.NewBoolQuery()
 			termQuery := elastic.NewTermQuery("topic", topic)
 			boolQuery.Must(termQuery)
@@ -75,6 +69,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			}
 			return c.JSON(http.StatusOK, messages)
 		}
+
 		return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 	}
 }

@@ -20,7 +20,6 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		esclient := es.GetESClient()
 		c.Set("route", "Histories")
 		topicPrefix := c.ParamValues()[0]
-		authorizedTopics := []interface{}{}
 		userID := c.QueryParam("userid")
 		topicsSuffix := strings.Split(c.QueryParam("topics"), ",")
 		topics := make([]string, len(topicsSuffix))
@@ -34,25 +33,14 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		}
 
 		logger.Logger.Debugf("user %s is asking for histories for topicPrefix %s with args topics=%s from=%d and limit=%d", userID, topicPrefix, topics, from, limit)
-		rc := app.RedisClient.Pool.Get()
-		defer rc.Close()
-		rc.Send("MULTI")
-		rc.Send("GET", userID)
-		for _, topic := range topics {
-			rc.Send("GET", fmt.Sprintf("%s-%s", userID, topic))
-		}
-		r, err := rc.Do("EXEC")
+		authenticated, authorizedTopics, err := authenticate(app, userID, topics...)
 		if err != nil {
 			return err
 		}
-		redisResults := (r.([]interface{}))
-		for i, redisResp := range redisResults[1:] {
-			if redisResp != nil {
-				authorizedTopics = append(authorizedTopics, topics[i])
-			}
-		}
 
-		if redisResults[0] != nil && len(authorizedTopics) > 0 {
+		fmt.Println("henrod", authorizedTopics)
+
+		if authenticated {
 			boolQuery := elastic.NewBoolQuery()
 			topicBoolQuery := elastic.NewBoolQuery()
 			topicBoolQuery.Should(elastic.NewTermsQuery("topic", authorizedTopics...))
