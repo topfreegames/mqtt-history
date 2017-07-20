@@ -165,6 +165,49 @@ func TestHistoriesHandler(t *testing.T) {
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
+
+			g.It("It should return 200 if the user is authorized into the topics via wildcard", func() {
+				a := GetDefaultTestApp()
+				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test/%s", testId)
+				topic2 := fmt.Sprintf("chat/test/%s", testId2)
+				authStr := "test:test-chat/test/+"
+				rc := redisclient.GetRedisClient("localhost", 4444, "")
+				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
+				_, err = rc.Pool.Get().Do("set", authStr, 2)
+				Expect(err).To(BeNil())
+
+				testMessage := Message{
+					Timestamp: time.Now().AddDate(0, 0, -1),
+					Payload:   "{\"test1\":\"test2\"}",
+					Topic:     topic,
+				}
+
+				testMessage2 := Message{
+					Timestamp: time.Now(),
+					Payload:   "{\"test3\":\"test4\"}",
+					Topic:     topic2,
+				}
+
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				Expect(err).To(BeNil())
+
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage2).Do(context.TODO())
+				Expect(err).To(BeNil())
+
+				refreshIndex()
+				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testId, testId2)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []Message
+				err = json.Unmarshal([]byte(body), &messages)
+				Expect(err).To(BeNil())
+				g.Assert(messages[0].Payload).Equal("{\"test3\":\"test4\"}")
+				g.Assert(messages[1].Payload).Equal("{\"test1\":\"test2\"}")
+				rc.Pool.Get().Do("del", authStr)
+			})
 		})
 	})
 }

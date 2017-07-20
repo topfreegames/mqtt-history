@@ -103,6 +103,35 @@ func TestHistoryHandler(t *testing.T) {
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 			})
+
+			g.It("Should retrieve 1 message from history when topic matches wildcard", func() {
+				a := GetDefaultTestApp()
+				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testId)
+				authStr := "test:test-chat/+"
+				rc := redisclient.GetRedisClient("localhost", 4444, "")
+				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
+				_, err = rc.Pool.Get().Do("set", authStr, 2)
+				Expect(err).To(BeNil())
+
+				testMessage := Message{
+					Timestamp: time.Now(),
+					Payload:   "{\"test1\":\"test2\"}",
+					Topic:     topic,
+				}
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				Expect(err).To(BeNil())
+
+				refreshIndex()
+				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []Message
+				err = json.Unmarshal([]byte(body), &messages)
+				Expect(err).To(BeNil())
+				rc.Pool.Get().Do("del", authStr)
+			})
 		})
 
 		g.Describe("History Since Handler", func() {
@@ -500,6 +529,56 @@ func TestHistoryHandler(t *testing.T) {
 				message = messages[i]
 				Expect(message.Topic).To(Equal(topic))
 			}
+		})
+
+		g.It("Should retrieve 1 message from history when topic matches wildcard", func() {
+			a := GetDefaultTestApp()
+			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+			topic := fmt.Sprintf("chat/test_%s", testId)
+			authStr := "test:test-chat/+"
+			rc := redisclient.GetRedisClient("localhost", 4444, "")
+			_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
+			_, err = rc.Pool.Get().Do("set", authStr, 2)
+			Expect(err).To(BeNil())
+
+			startTime := time.Now().UnixNano() / 1000000
+			testMessage := Message{}
+			for i := 0; i < 3; i++ {
+				messageTime := time.Now().UnixNano() / 1000000
+				testMessage = Message{
+					Timestamp: msToTime(messageTime),
+					Payload:   "{\"test1\":\"test2\"}",
+					Topic:     topic,
+				}
+				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				Expect(err).To(BeNil())
+			}
+
+			// Sorry bout this =/
+			time.Sleep(200 * time.Millisecond)
+
+			// Update indexes
+			refreshIndex()
+
+			path := fmt.Sprintf(
+				"/historysince/%s?userid=test:test&since=%d&limit=%d&from=%d",
+				topic, startTime/1000, 1, 0,
+			)
+
+			status, body := Get(a, path, t)
+			g.Assert(status).Equal(http.StatusOK)
+
+			var messages []Message
+			err = json.Unmarshal([]byte(body), &messages)
+			Expect(err).To(BeNil())
+			Expect(len(messages)).To(Equal(1))
+
+			var message Message
+			for i := 0; i < len(messages); i++ {
+				message = messages[i]
+				Expect(message.Topic).To(Equal(topic))
+			}
+			rc.Pool.Get().Do("del", authStr)
 		})
 	})
 }
