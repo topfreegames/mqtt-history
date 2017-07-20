@@ -112,23 +112,12 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 		}
 
 		logger.Logger.Debugf("user %s is asking for history for topic %s with args from=%d, limit=%d and since=%d", userID, topic, from, limit, since)
-		rc := app.RedisClient.Pool.Get()
-		defer rc.Close()
-		rc.Send("MULTI")
-		rc.Send("GET", userID)
-		rc.Send("GET", fmt.Sprintf("%s-%s", userID, topic))
-		var r interface{}
-		err = WithSegment("redis", c, func() error {
-			r, err = rc.Do("EXEC")
-			return err
-		})
+		authenticated, _, err := authenticate(app, userID, topic)
 		if err != nil {
 			return err
 		}
-		logger.Logger.Debugf("Authenticating user with userID=%s and topic=%s", userID, topic)
 
-		redisResults := (r.([]interface{}))
-		if redisResults[0] != nil && redisResults[1] != nil {
+		if authenticated {
 			boolQuery := elastic.NewBoolQuery()
 			termQuery := elastic.NewTermQuery("topic", topic)
 			rangeQuery := elastic.NewRangeQuery("timestamp").

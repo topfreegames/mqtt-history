@@ -30,3 +30,7 @@ _testmain.go
 
 vendor/
 tmp/
+*swp
+*swo
+.*swp
+.*swo
