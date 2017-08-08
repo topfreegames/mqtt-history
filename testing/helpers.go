@@ -8,6 +8,7 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,6 +16,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/engine/standard"
 	"github.com/onsi/gomega"
@@ -55,6 +57,15 @@ func GetWithQuery(app *App, url string, queryKey string, queryValue string, t *t
 	return e.GET(url).WithQuery(queryKey, queryValue).Expect()
 }
 */
+
+// Returns a chat index with today's date
+func GetChatIndex() string {
+	var buffer bytes.Buffer
+	t := time.Now()
+	buffer.WriteString("chat-")
+	buffer.WriteString(t.Format("2006-01-02"))
+	return buffer.String()
+}
 
 func doRequest(app *app.App, method, url, body string) (int, string) {
 	app.Engine.SetHandler(app.API)

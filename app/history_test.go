@@ -71,7 +71,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -119,7 +119,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -160,7 +160,7 @@ func TestHistoryHandler(t *testing.T) {
 					Topic:     topic,
 				}
 
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -216,7 +216,7 @@ func TestHistoryHandler(t *testing.T) {
 					"/historysince/%s?userid=test:test&since=%d",
 					topic, (time.Now().UnixNano() / 1000000000), // now
 				)
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 
 				// Update indexes
@@ -259,7 +259,7 @@ func TestHistoryHandler(t *testing.T) {
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+					_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 					Expect(err).To(BeNil())
 				}
 
@@ -308,7 +308,7 @@ func TestHistoryHandler(t *testing.T) {
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+					_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 					Expect(err).To(BeNil())
 				}
 
@@ -352,7 +352,7 @@ func TestHistoryHandler(t *testing.T) {
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+					_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 					Expect(err).To(BeNil())
 				}
 
@@ -400,7 +400,7 @@ func TestHistoryHandler(t *testing.T) {
 				Payload:   "{\"test1\":\"test2\"}",
 				Topic:     topic,
 			}
-			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+			_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 			Expect(err).To(BeNil())
 
 			messageTime = baseTime + 1*second
@@ -409,7 +409,7 @@ func TestHistoryHandler(t *testing.T) {
 				Payload:   "{\"test1\":\"test2\"}",
 				Topic:     fmt.Sprintf("%s/moremore", topic),
 			}
-			_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+			_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 			Expect(err).To(BeNil())
 
 			// Update indexes
@@ -453,7 +453,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 			}
 
@@ -501,7 +501,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 			}
 
@@ -550,7 +550,7 @@ func TestHistoryHandler(t *testing.T) {
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index("chat").Type("message").BodyJson(testMessage).Do(context.TODO())
+				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
 				Expect(err).To(BeNil())
 			}
 
