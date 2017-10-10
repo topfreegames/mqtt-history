@@ -38,8 +38,6 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			return err
 		}
 
-		fmt.Println("henrod", authorizedTopics)
-
 		if authenticated {
 			boolQuery := elastic.NewBoolQuery()
 			topicBoolQuery := elastic.NewBoolQuery()
