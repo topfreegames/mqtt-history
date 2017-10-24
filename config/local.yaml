@@ -4,6 +4,7 @@ healthcheck:
 elasticsearch:
   host: "http://localhost:9123"
   sniff: false
+  indexPattern: "chat-*"
   indexMappings:
     chat: '{ "mappings": { "message":{}}}'
 redis:

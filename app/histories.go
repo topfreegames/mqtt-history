@@ -45,7 +45,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = esclient.Search().Index("chat-*").Query(boolQuery).
+				searchResults, err = esclient.Search().Index(app.HistoryIndexPattern).Query(boolQuery).
 					Sort("timestamp", false).From(from).Size(limit).Do(context.TODO())
 				return err
 			})
