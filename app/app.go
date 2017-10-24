@@ -31,6 +31,7 @@ type App struct {
 	Engine      engine.Server
 	RedisClient *redisclient.RedisClient
 	NewRelic    newrelic.Application
+  HistoryIndexPattern string
 }
 
 // GetApp creates an app given the parameters
@@ -97,6 +98,7 @@ func (app *App) configureSentry() {
 
 func (app *App) configureApplication() {
 	app.Engine = standard.New(fmt.Sprintf("%s:%d", app.Host, app.Port))
+  app.HistoryIndexPattern = viper.GetString("elasticsearch.indexPattern")
 	app.API = echo.New()
 	a := app.API
 	_, w, _ := os.Pipe()
