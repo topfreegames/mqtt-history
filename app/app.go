@@ -24,13 +24,14 @@ import (
 
 // App is the struct that defines the application
 type App struct {
-	Debug       bool
-	Port        int
-	Host        string
-	API         *echo.Echo
-	Engine      engine.Server
-	RedisClient *redisclient.RedisClient
-	NewRelic    newrelic.Application
+	Debug                bool
+	Port                 int
+	Host                 string
+	API                  *echo.Echo
+	Engine               engine.Server
+	RedisClient          *redisclient.RedisClient
+	NewRelic             newrelic.Application
+	NumberOfDaysToSearch int
 }
 
 // GetApp creates an app given the parameters
@@ -97,6 +98,7 @@ func (app *App) configureSentry() {
 
 func (app *App) configureApplication() {
 	app.Engine = standard.New(fmt.Sprintf("%s:%d", app.Host, app.Port))
+	app.NumberOfDaysToSearch = viper.GetInt("numberOfDaysToSearch")
 	app.API = echo.New()
 	a := app.API
 	_, w, _ := os.Pipe()

@@ -49,7 +49,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(getLimitedIndexString(), boolQuery, from, limit)
+				searchResults, err = DoESQuery(app.NumberOfDaysToSearch, boolQuery, from, limit)
 				return err
 			})
 
@@ -124,7 +124,7 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(getLimitedIndexString(), boolQuery, from, limit)
+				searchResults, err = DoESQuery(app.NumberOfDaysToSearch, boolQuery, from, limit)
 				return err
 			})
 
