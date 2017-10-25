@@ -1,14 +1,12 @@
 package app
 
 import (
-	"context"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/labstack/echo"
-	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/logger"
 	"gopkg.in/olivere/elastic.v5"
 )
@@ -16,7 +14,6 @@ import (
 // HistoriesHandler is the handler responsible for sending multiples rooms history to the player
 func HistoriesHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		esclient := es.GetESClient()
 		c.Set("route", "Histories")
 		topicPrefix := c.ParamValues()[0]
 		userID := c.QueryParam("userid")
@@ -45,8 +42,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = esclient.Search().Index(app.HistoryIndexPattern).Query(boolQuery).
-					Sort("timestamp", false).From(from).Size(limit).Do(context.TODO())
+				searchResults, err = DoESQuery(getLimitedIndexString(), boolQuery, from, limit)
 				return err
 			})
 

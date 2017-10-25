@@ -61,7 +61,7 @@ func GetWithQuery(app *App, url string, queryKey string, queryValue string, t *t
 // Returns a chat index with today's date
 func GetChatIndex() string {
 	var buffer bytes.Buffer
-	t := time.Now()
+	t := time.Now().Local()
 	buffer.WriteString("chat-")
 	buffer.WriteString(t.Format("2006-01-02"))
 	return buffer.String()

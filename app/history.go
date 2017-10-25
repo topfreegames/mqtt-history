@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
-	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/logger"
 	"gopkg.in/olivere/elastic.v5"
 )
@@ -28,7 +26,6 @@ type Message struct {
 // HistoryHandler is the handler responsible for sending the rooms history to the player
 func HistoryHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		esclient := es.GetESClient()
 		c.Set("route", "History")
 		topic := c.ParamValues()[0]
 		userID := c.QueryParam("userid")
@@ -52,8 +49,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = esclient.Search().Index(app.HistoryIndexPattern).Query(boolQuery).
-					Sort("timestamp", false).From(from).Size(limit).Do(context.TODO())
+				searchResults, err = DoESQuery(getLimitedIndexString(), boolQuery, from, limit)
 				return err
 			})
 
@@ -77,7 +73,6 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 // HistorySinceHandler is the handler responsible for sending the rooms history to the player based in a initial date
 func HistorySinceHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		esclient := es.GetESClient()
 		c.Set("route", "HistorySince")
 		topic := c.ParamValues()[0]
 		userID := c.QueryParam("userid")
@@ -129,8 +124,7 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = esclient.Search().Index(app.HistoryIndexPattern).Query(boolQuery).
-					Sort("timestamp", false).From(from).Size(limit).Pretty(true).Do(context.TODO())
+				searchResults, err = DoESQuery(getLimitedIndexString(), boolQuery, from, limit)
 				return err
 			})
 
