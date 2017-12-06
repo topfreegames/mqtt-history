@@ -8,21 +8,18 @@
 package app
 
 import (
-  //"fmt"
-	//"strings"
-  //"github.com/topfreegames/mqtt-history/mongoclient"
-  "github.com/spf13/viper"
 	"github.com/labstack/echo"
-  "github.com/topfreegames/mqtt-history/mongoclient"
-  "gopkg.in/mgo.v2"
-  "gopkg.in/mgo.v2/bson"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/spf13/viper"
+	"github.com/topfreegames/mqtt-history/mongoclient"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type Acl struct {
-  Id    bson.ObjectId   "_id,omitempty"
-  Username    string    "username"
-  Pubsub    []string    "pubsub"
+	Id       bson.ObjectId "_id,omitempty"
+	Username string        "username"
+	Pubsub   []string      "pubsub"
 }
 
 //GetTX returns new relic transaction
@@ -46,52 +43,47 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 	return f()
 }
 
-func MongoSearch  (q interface{}) (searchResults []Acl, searchErr error) {
-    searchResults = []Acl{}
-    query := func(c *mgo.Collection) error {
-        fn := c.Find(q).All(&searchResults)
-        return fn
-    }
-    search := func() error {
-        return mongoclient.GetCollection("mqtt","mqtt_acl", query)
-    }
-    err := search()
-    if err != nil {
-        searchErr = err
-    }
-    return
+func MongoSearch(q interface{}) ([]Acl, error) {
+	searchResults := []Acl{}
+	query := func(c *mgo.Collection) error {
+		fn := c.Find(q).All(&searchResults)
+		return fn
+	}
+	search := func() error {
+		return mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+	}
+	err := search()
+	return searchResults, err
 }
 
-func GetTopics (username string, _topics []string) ([]string, error) {
-  if (viper.GetBool("mongo.allow_anonymous")) {
-    //fmt.Printf("youshallnotpass")
-    return _topics, nil
-  }
- // var searchResults []Acl
-  var topics []string
-  searchResults, err := MongoSearch(bson.M{"username": username, "pubsub": bson.M{"$in": _topics}})
-  for _, elem := range searchResults {
-    topics = append(topics, elem.Pubsub[0])
-  }
-  return topics, err
+func GetTopics(username string, _topics []string) ([]string, error) {
+	if viper.GetBool("mongo.allow_anonymous") {
+		return _topics, nil
+	}
+	var topics []string
+	searchResults, err := MongoSearch(bson.M{"username": username, "pubsub": bson.M{"$in": _topics}})
+	for _, elem := range searchResults {
+		topics = append(topics, elem.Pubsub[0])
+	}
+	return topics, err
 }
 
 func authenticate(app *App, userID string, topics ...string) (bool, []interface{}, error) {
-  var allowedTopics, err = GetTopics(userID, topics)
-  if (err != nil) {
-    return false, nil, err
-  }
-  allowed := make(map[string]bool)
-  for _, topic := range allowedTopics {
-    allowed[topic] = true
-  }
-  authorizedTopics := []interface{}{}
-  for _, topic := range topics {
-    if (allowed[topic]) {
-      authorizedTopics = append(authorizedTopics, topic)
-    }
-  }
-  return len(authorizedTopics) > 0, authorizedTopics, nil
+	var allowedTopics, err = GetTopics(userID, topics)
+	if err != nil {
+		return false, nil, err
+	}
+	allowed := make(map[string]bool)
+	for _, topic := range allowedTopics {
+		allowed[topic] = true
+	}
+	authorizedTopics := []interface{}{}
+	for _, topic := range topics {
+		if allowed[topic] {
+			authorizedTopics = append(authorizedTopics, topic)
+		}
+	}
+	return len(authorizedTopics) > 0, authorizedTopics, nil
 }
 
 //func authenticate(app *App, userID string, topics ...string) (bool, []interface{}, error) {
@@ -121,4 +113,3 @@ func authenticate(app *App, userID string, topics ...string) (bool, []interface{
 //
 //	return redisResults[0] != nil && len(authorizedTopics) > 0, authorizedTopics, nil
 //}
-

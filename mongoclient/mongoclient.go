@@ -8,34 +8,33 @@
 package mongoclient
 
 import (
-    "gopkg.in/mgo.v2"
-    "github.com/spf13/viper"
+	"github.com/spf13/viper"
+	"gopkg.in/mgo.v2"
 )
 
 var (
-  client *MongoSession
+	client *MongoSession
 )
 
 type MongoSession struct {
-  Session *mgo.Session
+	Session *mgo.Session
 }
 
 func GetMongoSession() *MongoSession {
-  client = &MongoSession{}
-  if client.Session == nil {
-    var err error
-    client.Session, err = mgo.Dial(viper.GetString("mongo.host") + ":" + viper.GetString("mongo.port"))
-    if (err != nil) {
-      panic(err)
-    }
-  }
-  return client
+	client = &MongoSession{}
+	if client.Session == nil {
+		var err error
+		client.Session, err = mgo.Dial(viper.GetString("mongo.host") + ":" + viper.GetString("mongo.port"))
+		if err != nil {
+			panic(err)
+		}
+	}
+	return client
 }
 
 func GetCollection(database string, collection string, s func(*mgo.Collection) error) error {
-  Session := GetMongoSession().Session.Clone()
-  defer Session.Close()
-  c := Session.DB(database).C(collection)
-  return s(c)
+	Session := GetMongoSession().Session.Clone()
+	defer Session.Close()
+	c := Session.DB(database).C(collection)
+	return s(c)
 }
-

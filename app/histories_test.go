@@ -22,7 +22,7 @@ import (
 	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
-  "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2"
 )
 
 func TestHistoriesHandler(t *testing.T) {
@@ -53,17 +53,17 @@ func TestHistoriesHandler(t *testing.T) {
 				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
-        
-        var topics, topics2 []string
-        topics = append(topics, topic)
-        topics2 = append(topics2, topic2)
 
-        query := func(c *mgo.Collection) error {
-          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
-          return fn
-        }
+				var topics, topics2 []string
+				topics = append(topics, topic)
+				topics2 = append(topics2, topic2)
 
-        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
+					return fn
+				}
+
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -102,17 +102,17 @@ func TestHistoriesHandler(t *testing.T) {
 				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
-				
-        var topics, topics2 []string
-        topics = append(topics, topic)
-        topics2 = append(topics2, topic2)
 
-        query := func(c *mgo.Collection) error {
-          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
-          return fn
-        }
+				var topics, topics2 []string
+				topics = append(topics, topic)
+				topics2 = append(topics2, topic2)
 
-        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					return fn
+				}
+
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -151,17 +151,17 @@ func TestHistoriesHandler(t *testing.T) {
 				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
-				
-        var topics []string
-        //topics = append(topics, topic)
-        //topics = append(topics, topic2)
 
-        query := func(c *mgo.Collection) error {
-          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
-          return fn
-        }
+				var topics []string
+				//topics = append(topics, topic)
+				//topics = append(topics, topic2)
 
-        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					return fn
+				}
+
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -195,16 +195,16 @@ func TestHistoriesHandler(t *testing.T) {
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
 
-        var topics, topics2 []string
-        topics = append(topics, topic)
-        topics2 = append(topics2, topic2)
+				var topics, topics2 []string
+				topics = append(topics, topic)
+				topics2 = append(topics2, topic2)
 
-        query := func(c *mgo.Collection) error {
-          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
-          return fn
-        }
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
+					return fn
+				}
 
-        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
