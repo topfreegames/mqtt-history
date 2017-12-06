@@ -13,5 +13,9 @@ redis:
   password: ""
   maxPoolSize: 10
   db: 0
+mongo:
+  host: "mongodb://localhost"
+  port: 27017
+  allow_anonymous: false
 logger:
   level: "debug"

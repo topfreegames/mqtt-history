@@ -21,8 +21,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 	. "github.com/topfreegames/mqtt-history/app"
 	"github.com/topfreegames/mqtt-history/es"
-	"github.com/topfreegames/mqtt-history/redisclient"
+//	"github.com/topfreegames/mqtt-history/redisclient"
+  "github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
+  "gopkg.in/mgo.v2"
+  "github.com/spf13/viper"
 )
 
 func refreshIndex() {
@@ -55,18 +58,35 @@ func TestHistoryHandler(t *testing.T) {
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
-
-			g.It("It should return 200 if the user is authorized into the topic", func() {
-				a := GetDefaultTestApp()
+			
+      g.It("It should return 200 if user is unauthorized into the topic but anonymous is enabled", func() {
+        viper.Set("mongo.allow_anonymous", true)
+        a := GetDefaultTestApp()
 				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+				path := fmt.Sprintf("/history/chat/test_%s?userid=test:test", testId)
+				status, _ := Get(a, path, t)
+        viper.Set("mongo.allow_anonymous", false)
+        g.Assert(status).Equal(http.StatusOK)
+      })
 
-				testMessage := Message{
+      g.It("It should return 200 if the user is authorized into the topic in mongo", func() {
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
+
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+
+        Expect(err).To(BeNil())
+
+        testMessage := Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
@@ -82,17 +102,25 @@ func TestHistoryHandler(t *testing.T) {
 				var messages []Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-			})
 
+      })
+     
 			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
+
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+
+        Expect(err).To(BeNil())
 
 				refreshIndex()
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
@@ -104,15 +132,23 @@ func TestHistoryHandler(t *testing.T) {
 				Expect(err).To(BeNil())
 			})
 
-			g.It("Should retrieve 1 message from history when topic matches wildcard", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := "test:test-chat/+"
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+      g.It("Should retrieve 1 message from history when topic matches wildcard", func() {
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
+
+        var topics []string
+        topics = append(topics, topic)
+        topics = append(topics, "chat/+")
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+
+        Expect(err).To(BeNil())
 
 				testMessage := Message{
 					Timestamp: time.Now(),
@@ -130,7 +166,6 @@ func TestHistoryHandler(t *testing.T) {
 				var messages []Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-				rc.Pool.Get().Do("del", authStr)
 			})
 		})
 
@@ -144,15 +179,21 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
 
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+
+        Expect(err).To(BeNil())
 
 				testMessage := Message{
 					Timestamp: time.Now(),
@@ -175,15 +216,20 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
 
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+        Expect(err).To(BeNil())
 
 				refreshIndex()
 				path := fmt.Sprintf("/historysince/%s?userid=test:test", topic)
@@ -196,15 +242,20 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
 
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+        Expect(err).To(BeNil())
 
 				testMessage := Message{
 					Timestamp: time.Now(),
@@ -237,16 +288,21 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic and since is in the future", func() {
-				g.Timeout(10 * time.Second)
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
+        g.Timeout(10 * time.Second)
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
 
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+        Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
 				testMessage := Message{}
@@ -286,16 +342,21 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic and since is negative", func() {
-				g.Timeout(10 * time.Second)
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
+        g.Timeout(10 * time.Second)
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
 
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+        Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
 				testMessage := Message{}
@@ -332,14 +393,20 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("Should retrieve 10 messages when limit is 10 and the history size is greater than this", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
-				authStr := fmt.Sprintf("test:test-%s", topic)
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				Expect(err).To(BeNil())
+        a := GetDefaultTestApp()
+        testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+        topic := fmt.Sprintf("chat/test_%s", testId)
+
+        var topics []string
+        topics = append(topics, topic)
+
+        query := func(c *mgo.Collection) error {
+          fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+          return fn
+        }
+
+        err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+        Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
 				testMessage := Message{}
@@ -380,14 +447,20 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve only messages from the exact topic", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
-			authStr := fmt.Sprintf("test:test-%s", topic)
-			rc := redisclient.GetRedisClient("localhost", 4444, "")
-			_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-			_, err = rc.Pool.Get().Do("set", authStr, 2)
-			Expect(err).To(BeNil())
+      a := GetDefaultTestApp()
+      testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+      topic := fmt.Sprintf("chat/test_%s", testId)
+
+      var topics []string
+      topics = append(topics, topic)
+
+      query := func(c *mgo.Collection) error {
+        fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+        return fn
+      }
+
+      err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+      Expect(err).To(BeNil())
 
 			now := time.Now().UnixNano() / 1000000
 			testMessage := Message{}
@@ -435,14 +508,20 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve all messages eve if limit is greater than the size of current history", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
-			authStr := fmt.Sprintf("test:test-%s", topic)
-			rc := redisclient.GetRedisClient("localhost", 4444, "")
-			_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-			_, err = rc.Pool.Get().Do("set", authStr, 2)
-			Expect(err).To(BeNil())
+      a := GetDefaultTestApp()
+      testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+      topic := fmt.Sprintf("chat/test_%s", testId)
+
+      var topics []string
+      topics = append(topics, topic)
+
+      query := func(c *mgo.Collection) error {
+        fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+        return fn
+      }
+
+      err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+      Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
 			testMessage := Message{}
@@ -483,14 +562,20 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve 1 message from history when limit is 1 and theres more than 1 message", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
-			authStr := fmt.Sprintf("test:test-%s", topic)
-			rc := redisclient.GetRedisClient("localhost", 4444, "")
-			_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-			_, err = rc.Pool.Get().Do("set", authStr, 2)
-			Expect(err).To(BeNil())
+      a := GetDefaultTestApp()
+      testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+      topic := fmt.Sprintf("chat/test_%s", testId)
+
+      var topics []string
+      topics = append(topics, topic)
+
+      query := func(c *mgo.Collection) error {
+        fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+        return fn
+      }
+
+      err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+      Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
 			testMessage := Message{}
@@ -532,14 +617,20 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve 1 message from history when topic matches wildcard", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
-			authStr := "test:test-chat/+"
-			rc := redisclient.GetRedisClient("localhost", 4444, "")
-			_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-			_, err = rc.Pool.Get().Do("set", authStr, 2)
-			Expect(err).To(BeNil())
+      a := GetDefaultTestApp()
+      testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+      topic := fmt.Sprintf("chat/test_%s", testId)
+
+      var topics []string
+      topics = append(topics, topic)
+
+      query := func(c *mgo.Collection) error {
+        fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+        return fn
+      }
+
+      err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+      Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
 			testMessage := Message{}
@@ -578,7 +669,6 @@ func TestHistoryHandler(t *testing.T) {
 				message = messages[i]
 				Expect(message.Topic).To(Equal(topic))
 			}
-			rc.Pool.Get().Do("del", authStr)
 		})
 	})
-}
+} 
