@@ -4,12 +4,12 @@ MAINTAINER TFG Co <backend@tfgco.com>
 
 RUN apk add --no-cache git bash
 
-RUN go get -u github.com/Masterminds/glide/...
+RUN go get -u github.com/golang/dep/...
 
 ADD . /go/src/github.com/topfreegames/mqtt-history
 
 WORKDIR /go/src/github.com/topfreegames/mqtt-history
-RUN glide install
+RUN dep ensure
 RUN go install github.com/topfreegames/mqtt-history
 
 ENV MQTTHISTORY_ELASTICSEARCH_HOST http://localhost:9200
