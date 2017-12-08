@@ -8,12 +8,19 @@
 package app
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/spf13/viper"
+	"github.com/topfreegames/mqtt-history/mongoclient"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
+
+type Acl struct {
+	Id       bson.ObjectId "_id,omitempty"
+	Username string        "username"
+	Pubsub   []string      "pubsub"
+}
 
 //GetTX returns new relic transaction
 func GetTX(c echo.Context) newrelic.Transaction {
@@ -36,30 +43,45 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 	return f()
 }
 
-func authenticate(app *App, userID string, topics ...string) (bool, []interface{}, error) {
-	rc := app.RedisClient.Pool.Get()
-	defer rc.Close()
-	rc.Send("MULTI")
-	rc.Send("GET", userID)
-	for _, topic := range topics {
-		rc.Send("GET", fmt.Sprintf("%s-%s", userID, topic))
-
-		pieces := strings.Split(topic, "/")
-		pieces[len(pieces)-1] = "+"
-		wildtopic := strings.Join(pieces, "/")
-		rc.Send("GET", fmt.Sprintf("%s-%s", userID, wildtopic))
+func MongoSearch(q interface{}) ([]Acl, error) {
+	searchResults := []Acl{}
+	query := func(c *mgo.Collection) error {
+		fn := c.Find(q).All(&searchResults)
+		return fn
 	}
-	r, err := rc.Do("EXEC")
+	search := func() error {
+		return mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+	}
+	err := search()
+	return searchResults, err
+}
+
+func GetTopics(username string, _topics []string) ([]string, error) {
+	if viper.GetBool("mongo.allow_anonymous") {
+		return _topics, nil
+	}
+	var topics []string
+	searchResults, err := MongoSearch(bson.M{"username": username, "pubsub": bson.M{"$in": _topics}})
+	for _, elem := range searchResults {
+		topics = append(topics, elem.Pubsub[0])
+	}
+	return topics, err
+}
+
+func authenticate(app *App, userID string, topics ...string) (bool, []interface{}, error) {
+	var allowedTopics, err = GetTopics(userID, topics)
 	if err != nil {
 		return false, nil, err
 	}
+	allowed := make(map[string]bool)
+	for _, topic := range allowedTopics {
+		allowed[topic] = true
+	}
 	authorizedTopics := []interface{}{}
-	redisResults := (r.([]interface{}))
-	for i, redisResp := range redisResults[1:] {
-		if redisResp != nil {
-			authorizedTopics = append(authorizedTopics, topics[i/2])
+	for _, topic := range topics {
+		if allowed[topic] {
+			authorizedTopics = append(authorizedTopics, topic)
 		}
 	}
-
-	return redisResults[0] != nil && len(authorizedTopics) > 0, authorizedTopics, nil
+	return len(authorizedTopics) > 0, authorizedTopics, nil
 }

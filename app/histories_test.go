@@ -20,8 +20,9 @@ import (
 	"github.com/satori/go.uuid"
 	. "github.com/topfreegames/mqtt-history/app"
 	"github.com/topfreegames/mqtt-history/es"
-	"github.com/topfreegames/mqtt-history/redisclient"
+	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
+	"gopkg.in/mgo.v2"
 )
 
 func TestHistoriesHandler(t *testing.T) {
@@ -52,12 +53,17 @@ func TestHistoriesHandler(t *testing.T) {
 				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
-				authStr := fmt.Sprintf("test:test-%s", topic)
-				authStr2 := fmt.Sprintf("test:test-%s", topic2)
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
-				_, err = rc.Pool.Get().Do("set", authStr2, 2)
+
+				var topics, topics2 []string
+				topics = append(topics, topic)
+				topics2 = append(topics2, topic2)
+
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
+					return fn
+				}
+
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -96,10 +102,17 @@ func TestHistoriesHandler(t *testing.T) {
 				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
-				authStr := fmt.Sprintf("test:test-%s", topic)
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
+
+				var topics, topics2 []string
+				topics = append(topics, topic)
+				topics2 = append(topics2, topic2)
+
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					return fn
+				}
+
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -138,8 +151,17 @@ func TestHistoriesHandler(t *testing.T) {
 				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
+
+				var topics []string
+				//topics = append(topics, topic)
+				//topics = append(topics, topic2)
+
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					return fn
+				}
+
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -172,10 +194,17 @@ func TestHistoriesHandler(t *testing.T) {
 				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test/%s", testId)
 				topic2 := fmt.Sprintf("chat/test/%s", testId2)
-				authStr := "test:test-chat/test/+"
-				rc := redisclient.GetRedisClient("localhost", 4444, "")
-				_, err := rc.Pool.Get().Do("set", "test:test", "lalala")
-				_, err = rc.Pool.Get().Do("set", authStr, 2)
+
+				var topics, topics2 []string
+				topics = append(topics, topic)
+				topics2 = append(topics2, topic2)
+
+				query := func(c *mgo.Collection) error {
+					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
+					return fn
+				}
+
+				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -206,7 +235,6 @@ func TestHistoriesHandler(t *testing.T) {
 				Expect(err).To(BeNil())
 				g.Assert(messages[0].Payload).Equal("{\"test3\":\"test4\"}")
 				g.Assert(messages[1].Payload).Equal("{\"test1\":\"test2\"}")
-				rc.Pool.Get().Do("del", authStr)
 			})
 		})
 	})

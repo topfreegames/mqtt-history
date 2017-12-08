@@ -7,11 +7,8 @@ elasticsearch:
   sniff: false
   indexMappings:
     chat: '{ "mappings": { "message":{}}}'
-redis:
-  host: "localhost"
-  port: 4444
-  password: ""
-  maxPoolSize: 10
-  db: 0
+mongo:
+  host: "mongodb://localhost:27017"
+  allow_anonymous: false
 logger:
   level: "debug"

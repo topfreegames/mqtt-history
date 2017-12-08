@@ -37,11 +37,8 @@ def get_tag_value(tag):
 
 def get_last_tag(tags):
     return '.'.join(
-        max([
-            (get_tag_value(tag), tag) for tag in
-                [t.split('.') for t in tags]
-            ], key=lambda i: i[0]
-        )[1]
+        max([(get_tag_value(tag), tag) for tag in [t.split('.') for t in tags]],
+            key=lambda i: i[0])[1]
     )
 
 

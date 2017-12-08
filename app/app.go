@@ -18,7 +18,6 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/mqtt-history/logger"
-	"github.com/topfreegames/mqtt-history/redisclient"
 	"github.com/uber-go/zap"
 )
 
@@ -29,7 +28,6 @@ type App struct {
 	Host                 string
 	API                  *echo.Echo
 	Engine               engine.Server
-	RedisClient          *redisclient.RedisClient
 	NewRelic             newrelic.Application
 	NumberOfDaysToSearch int
 }
@@ -119,8 +117,6 @@ func (app *App) configureApplication() {
 	a.Get("/history/*", HistoryHandler(app))
 	a.Get("/histories/*", HistoriesHandler(app))
 	a.Get("/:other", NotFoundHandler(app))
-
-	app.RedisClient = redisclient.GetRedisClient(viper.GetString("redis.host"), viper.GetInt("redis.port"), viper.GetString("redis.password"))
 }
 
 //OnErrorHandler handles application panics

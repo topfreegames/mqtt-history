@@ -1,25 +1,13 @@
 version: '2'
 
 services:
-  redis:
-    image: redis:3.2
-    ports:
-      - "4444:6379"
-    networks:
-      - mosqnet
   mosquitto:
-    image: jllopis/mosquitto:v1.4.10
+    image: eclipse-mosquitto:1.4.12
     ports:
       - "1883:1883"
     environment:
       - DOMAIN=example.local
       - PORT=8080
-    networks:
-      - mosqnet
-    depends_on:
-      - redis
-    labels:
-      - "local.example.description=Mosquitto v1.4.9 MQTT server"
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.4.1
     ports:
@@ -29,5 +17,7 @@ services:
        - http.host=0.0.0.0
        - transport.host=127.0.0.1
        - xpack.security.enabled=false
-networks:
-  mosqnet:
+  mongo:
+    image: mongo:3.0.15-wheezy
+    ports:
+      - "27017:27017"
