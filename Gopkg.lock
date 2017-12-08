@@ -12,11 +12,6 @@
   revision = "f12c6236fe7b5cf6bcf30e5935d08cb079d78334"
 
 [[projects]]
-  name = "github.com/garyburd/redigo"
-  packages = ["internal","redis"]
-  revision = "80f7de34463b0ed3d7c61303e5619efe1b227f92"
-
-[[projects]]
   name = "github.com/getsentry/raven-go"
   packages = ["."]
   revision = "c9d3cc542ad199f62c0264286be537f9bce6063c"
@@ -201,6 +196,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "061f15c8c30444e59a2ec554939792ea65f60767e575a1d4b276dae1845a3dd1"
+  inputs-digest = "7a668e52a3f593b9a8661d58317b5fb4556735bb5438c7037ccc2790f2fd5251"
   solver-name = "gps-cdcl"
   solver-version = 1

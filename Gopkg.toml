@@ -25,9 +25,6 @@
   name = "github.com/franela/goblin"
 
 [[constraint]]
-  name = "github.com/garyburd/redigo"
-
-[[constraint]]
   name = "github.com/getsentry/raven-go"
 
 [[constraint]]

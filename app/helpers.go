@@ -85,31 +85,3 @@ func authenticate(app *App, userID string, topics ...string) (bool, []interface{
 	}
 	return len(authorizedTopics) > 0, authorizedTopics, nil
 }
-
-//func authenticate(app *App, userID string, topics ...string) (bool, []interface{}, error) {
-//	rc := app.RedisClient.Pool.Get()
-//	defer rc.Close()
-//	rc.Send("MULTI")
-//	rc.Send("GET", userID)
-//	for _, topic := range topics {
-//		rc.Send("GET", fmt.Sprintf("%s-%s", userID, topic))
-//
-//		pieces := strings.Split(topic, "/")
-//		pieces[len(pieces)-1] = "+"
-//		wildtopic := strings.Join(pieces, "/")
-//		rc.Send("GET", fmt.Sprintf("%s-%s", userID, wildtopic))
-//	}
-//	r, err := rc.Do("EXEC")
-//	if err != nil {
-//		return false, nil, err
-//	}
-//	authorizedTopics := []interface{}{}
-//	redisResults := (r.([]interface{}))
-//	for i, redisResp := range redisResults[1:] {
-//		if redisResp != nil {
-//			authorizedTopics = append(authorizedTopics, topics[i/2])
-//		}
-//	}
-//
-//	return redisResults[0] != nil && len(authorizedTopics) > 0, authorizedTopics, nil
-//}

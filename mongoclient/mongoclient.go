@@ -16,15 +16,17 @@ var (
 	client *MongoSession
 )
 
+//MongoSession is a mongo session
 type MongoSession struct {
 	Session *mgo.Session
 }
 
+//GetMongoSession returns a MongoSession
 func GetMongoSession() *MongoSession {
 	client = &MongoSession{}
 	if client.Session == nil {
 		var err error
-		client.Session, err = mgo.Dial(viper.GetString("mongo.host") + ":" + viper.GetString("mongo.port"))
+		client.Session, err = mgo.Dial(viper.GetString("mongo.host"))
 		if err != nil {
 			panic(err)
 		}
@@ -32,6 +34,7 @@ func GetMongoSession() *MongoSession {
 	return client
 }
 
+//GetCollection returns a collection from the database
 func GetCollection(database string, collection string, s func(*mgo.Collection) error) error {
 	Session := GetMongoSession().Session.Clone()
 	defer Session.Close()
