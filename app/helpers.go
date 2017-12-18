@@ -8,11 +8,13 @@
 package app
 
 import (
+	"strings"
+
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/mqtt-history/mongoclient"
-	"gopkg.in/mgo.v2"
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -62,6 +64,9 @@ func GetTopics(username string, _topics []string) ([]string, error) {
 	}
 	var topics []string
 	searchResults, err := MongoSearch(bson.M{"username": username, "pubsub": bson.M{"$in": _topics}})
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range searchResults {
 		topics = append(topics, elem.Pubsub[0])
 	}
@@ -69,6 +74,12 @@ func GetTopics(username string, _topics []string) ([]string, error) {
 }
 
 func authenticate(app *App, userID string, topics ...string) (bool, []interface{}, error) {
+	for _, topic := range topics {
+		pieces := strings.Split(topic, "/")
+		pieces[len(pieces)-1] = "+"
+		wildtopic := strings.Join(pieces, "/")
+		topics = append(topics, wildtopic)
+	}
 	var allowedTopics, err = GetTopics(userID, topics)
 	if err != nil {
 		return false, nil, err

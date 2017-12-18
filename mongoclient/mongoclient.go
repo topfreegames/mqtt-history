@@ -8,12 +8,15 @@
 package mongoclient
 
 import (
+	"sync"
+
 	"github.com/spf13/viper"
-	"gopkg.in/mgo.v2"
+	mgo "gopkg.in/mgo.v2"
 )
 
 var (
 	client *MongoSession
+	once   sync.Once
 )
 
 //MongoSession is a mongo session
@@ -22,22 +25,28 @@ type MongoSession struct {
 }
 
 //GetMongoSession returns a MongoSession
-func GetMongoSession() *MongoSession {
-	client = &MongoSession{}
+func GetMongoSession() (*MongoSession, error) {
+	once.Do(func() {
+		client = &MongoSession{}
+	})
 	if client.Session == nil {
 		var err error
 		client.Session, err = mgo.Dial(viper.GetString("mongo.host"))
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
-	return client
+	return client, nil
 }
 
 //GetCollection returns a collection from the database
 func GetCollection(database string, collection string, s func(*mgo.Collection) error) error {
-	Session := GetMongoSession().Session.Clone()
-	defer Session.Close()
-	c := Session.DB(database).C(collection)
+	mongoSession, err := GetMongoSession()
+	if err != nil {
+		return err
+	}
+	session := mongoSession.Session.Clone()
+	defer session.Close()
+	c := session.DB(database).C(collection)
 	return s(c)
 }
