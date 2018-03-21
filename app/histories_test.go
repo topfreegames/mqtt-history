@@ -32,6 +32,7 @@ func TestHistoriesHandler(t *testing.T) {
 	RegisterFailHandler(func(m string, _ ...int) { g.Fail(m) })
 
 	g.Describe("Histories", func() {
+		ctx := context.Background()
 		esclient := es.GetESClient()
 
 		g.BeforeEach(func() {
@@ -63,7 +64,7 @@ func TestHistoriesHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -112,7 +113,7 @@ func TestHistoriesHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -161,7 +162,7 @@ func TestHistoriesHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -204,7 +205,7 @@ func TestHistoriesHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{

@@ -43,6 +43,7 @@ func TestHistoryHandler(t *testing.T) {
 	RegisterFailHandler(func(m string, _ ...int) { g.Fail(m) })
 
 	g.Describe("History", func() {
+		ctx := context.Background()
 		esclient := es.GetESClient()
 
 		g.BeforeEach(func() {
@@ -81,7 +82,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -117,7 +118,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -145,7 +146,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -190,7 +191,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -227,7 +228,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -253,7 +254,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -300,7 +301,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
@@ -354,7 +355,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
@@ -404,7 +405,7 @@ func TestHistoryHandler(t *testing.T) {
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
@@ -458,7 +459,7 @@ func TestHistoryHandler(t *testing.T) {
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			now := time.Now().UnixNano() / 1000000
@@ -519,7 +520,7 @@ func TestHistoryHandler(t *testing.T) {
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
@@ -573,7 +574,7 @@ func TestHistoryHandler(t *testing.T) {
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
@@ -628,7 +629,7 @@ func TestHistoryHandler(t *testing.T) {
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000

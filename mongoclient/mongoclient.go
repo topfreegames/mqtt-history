@@ -8,6 +8,7 @@
 package mongoclient
 
 import (
+	"context"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -40,12 +41,12 @@ func GetMongoSession() (interfaces.MongoDB, error) {
 }
 
 //GetCollection returns a collection from the database
-func GetCollection(collection string, s func(interfaces.Collection) error) error {
+func GetCollection(ctx context.Context, collection string, s func(interfaces.Collection) error) error {
 	mongoDB, err := GetMongoSession()
 	if err != nil {
 		return err
 	}
-	c, session := mongoDB.C(collection)
+	c, session := mongoDB.WithContext(ctx).C(collection)
 	defer session.Close()
 	return s(c)
 }

@@ -8,6 +8,7 @@
 package app
 
 import (
+	"context"
 	"strings"
 
 	"github.com/labstack/echo"
@@ -45,25 +46,25 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 	return f()
 }
 
-func MongoSearch(q interface{}) ([]Acl, error) {
+func MongoSearch(ctx context.Context, q interface{}) ([]Acl, error) {
 	searchResults := []Acl{}
 	query := func(c interfaces.Collection) error {
 		fn := c.Find(q).All(&searchResults)
 		return fn
 	}
 	search := func() error {
-		return mongoclient.GetCollection("mqtt_acl", query)
+		return mongoclient.GetCollection(ctx, "mqtt_acl", query)
 	}
 	err := search()
 	return searchResults, err
 }
 
-func GetTopics(username string, _topics []string) ([]string, error) {
+func GetTopics(ctx context.Context, username string, _topics []string) ([]string, error) {
 	if viper.GetBool("mongo.allow_anonymous") {
 		return _topics, nil
 	}
 	var topics []string
-	searchResults, err := MongoSearch(bson.M{"username": username, "pubsub": bson.M{"$in": _topics}})
+	searchResults, err := MongoSearch(ctx, bson.M{"username": username, "pubsub": bson.M{"$in": _topics}})
 	if err != nil {
 		return nil, err
 	}
@@ -73,14 +74,14 @@ func GetTopics(username string, _topics []string) ([]string, error) {
 	return topics, err
 }
 
-func authenticate(app *App, userID string, topics ...string) (bool, []interface{}, error) {
+func authenticate(ctx context.Context, app *App, userID string, topics ...string) (bool, []interface{}, error) {
 	for _, topic := range topics {
 		pieces := strings.Split(topic, "/")
 		pieces[len(pieces)-1] = "+"
 		wildtopic := strings.Join(pieces, "/")
 		topics = append(topics, wildtopic)
 	}
-	var allowedTopics, err = GetTopics(userID, topics)
+	var allowedTopics, err = GetTopics(ctx, userID, topics)
 	if err != nil {
 		return false, nil, err
 	}

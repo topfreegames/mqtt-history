@@ -29,11 +29,18 @@
   revision = "c9d3cc542ad199f62c0264286be537f9bce6063c"
 
 [[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/hashicorp/hcl"
   packages = [
     ".",
     "hcl/ast",
     "hcl/parser",
+    "hcl/printer",
     "hcl/scanner",
     "hcl/strconv",
     "hcl/token",
@@ -203,7 +210,8 @@
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "7fb2782df3d83e0036cc89f461ed0422628776f4"
+  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
+  version = "v1.0.2"
 
 [[projects]]
   branch = "tracing"
@@ -214,9 +222,12 @@
     "http",
     "jaeger",
     "jaeger/echo",
-    "jaeger/http"
+    "jaeger/http",
+    "jaeger/mongo",
+    "mongo",
+    "mongo/interfaces"
   ]
-  revision = "65062ea474d2c8f33864f24328732b5f2b58828d"
+  revision = "e909178defa0f5a15760b53111e7abc597693788"
 
 [[projects]]
   name = "github.com/uber-go/atomic"
@@ -322,6 +333,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1f9612b1e712d2cb170f1db6dcd4d922e27414255867cee322690e74ec8882e5"
+  inputs-digest = "38bfdd98771f21b3af722d32e536d1b07a3e9260e85f1ba19a3aca83c479e6d4"
   solver-name = "gps-cdcl"
   solver-version = 1
