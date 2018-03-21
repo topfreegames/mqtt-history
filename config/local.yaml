@@ -12,3 +12,6 @@ mongo:
   allow_anonymous: false
 logger:
   level: "debug"
+jaeger:
+  disabled: true
+  samplingProbability: 0.001

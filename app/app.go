@@ -12,11 +12,12 @@ import (
 	"os"
 
 	"github.com/getsentry/raven-go"
-	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine"
 	"github.com/labstack/echo/engine/standard"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
+	"github.com/topfreegames/extensions/echo"
+	"github.com/topfreegames/extensions/jaeger"
 	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/uber-go/zap"
 )
@@ -52,6 +53,7 @@ func (app *App) Configure() {
 	app.configureSentry()
 
 	app.configureNewRelic()
+	app.configureJaeger()
 
 	app.loadConfiguration()
 	app.configureApplication()
@@ -72,6 +74,19 @@ func (app *App) configureNewRelic() {
 
 	app.NewRelic = nr
 	logger.Logger.Info("Initialized New Relic successfully.")
+}
+
+func (app *App) configureJaeger() {
+	opts := jaeger.Options{
+		Disabled:    viper.GetBool("jaeger.disabled"),
+		Probability: viper.GetFloat64("jaeger.samplingProbability"),
+		ServiceName: "mqtt-history",
+	}
+
+	_, err := jaeger.Configure(opts)
+	if err != nil {
+		logger.Logger.Error("Failed to initialize Jaeger.")
+	}
 }
 
 func (app *App) setConfigurationDefaults() {
