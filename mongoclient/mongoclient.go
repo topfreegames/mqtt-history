@@ -11,42 +11,41 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
-	mgo "gopkg.in/mgo.v2"
+	"github.com/topfreegames/extensions/mongo"
+	"github.com/topfreegames/extensions/mongo/interfaces"
 )
 
 var (
-	client *MongoSession
+	client *mongo.Client
 	once   sync.Once
 )
 
-//MongoSession is a mongo session
-type MongoSession struct {
-	Session *mgo.Session
-}
-
 //GetMongoSession returns a MongoSession
-func GetMongoSession() (*MongoSession, error) {
+func GetMongoSession() (interfaces.MongoDB, error) {
+	var err error
+
 	once.Do(func() {
-		client = &MongoSession{}
+		config := viper.GetViper()
+
+		url := config.Get("mongo.host")
+		config.Set("mongo.url", url)
+
+		client, err = mongo.NewClient("mongo", config)
 	})
-	if client.Session == nil {
-		var err error
-		client.Session, err = mgo.Dial(viper.GetString("mongo.host"))
-		if err != nil {
-			return nil, err
-		}
+
+	if err != nil {
+		return nil, err
 	}
-	return client, nil
+	return client.MongoDB, nil
 }
 
 //GetCollection returns a collection from the database
-func GetCollection(database string, collection string, s func(*mgo.Collection) error) error {
-	mongoSession, err := GetMongoSession()
+func GetCollection(collection string, s func(interfaces.Collection) error) error {
+	mongoDB, err := GetMongoSession()
 	if err != nil {
 		return err
 	}
-	session := mongoSession.Session.Clone()
+	c, session := mongoDB.C(collection)
 	defer session.Close()
-	c := session.DB(database).C(collection)
 	return s(c)
 }

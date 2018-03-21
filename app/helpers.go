@@ -13,8 +13,8 @@ import (
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
+	"github.com/topfreegames/extensions/mongo/interfaces"
 	"github.com/topfreegames/mqtt-history/mongoclient"
-	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -47,12 +47,12 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 
 func MongoSearch(q interface{}) ([]Acl, error) {
 	searchResults := []Acl{}
-	query := func(c *mgo.Collection) error {
+	query := func(c interfaces.Collection) error {
 		fn := c.Find(q).All(&searchResults)
 		return fn
 	}
 	search := func() error {
-		return mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+		return mongoclient.GetCollection("mqtt_acl", query)
 	}
 	err := search()
 	return searchResults, err

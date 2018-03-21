@@ -91,6 +91,7 @@ func (app *App) configureJaeger() {
 
 func (app *App) setConfigurationDefaults() {
 	viper.SetDefault("healthcheck.workingText", "WORKING")
+	viper.SetDefault("mongo.database", "mqtt")
 }
 
 func (app *App) loadConfiguration() {
