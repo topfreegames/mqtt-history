@@ -36,7 +36,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			limit = 10
 		}
 
-		authenticated, _, err := authenticate(app, userID, topic)
+		authenticated, _, err := authenticate(c.StdContext(), app, userID, topic)
 		if err != nil {
 			return err
 		}
@@ -49,7 +49,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(app.NumberOfDaysToSearch, boolQuery, from, limit)
+				searchResults, err = DoESQuery(c.StdContext(), app.NumberOfDaysToSearch, boolQuery, from, limit)
 				return err
 			})
 
@@ -107,7 +107,7 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 		}
 
 		logger.Logger.Debugf("user %s is asking for history for topic %s with args from=%d, limit=%d and since=%d", userID, topic, from, limit, since)
-		authenticated, _, err := authenticate(app, userID, topic)
+		authenticated, _, err := authenticate(c.StdContext(), app, userID, topic)
 		if err != nil {
 			return err
 		}
@@ -124,7 +124,7 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(app.NumberOfDaysToSearch, boolQuery, from, limit)
+				searchResults, err = DoESQuery(c.StdContext(), app.NumberOfDaysToSearch, boolQuery, from, limit)
 				return err
 			})
 

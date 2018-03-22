@@ -11,6 +11,7 @@ import (
 
 	"github.com/op/go-logging"
 	"github.com/spf13/viper"
+	eelastic "github.com/topfreegames/extensions/elastic"
 	"github.com/topfreegames/mqtt-history/logger"
 )
 
@@ -48,7 +49,7 @@ func configureESClient() {
 	logger.Logger.Debug(fmt.Sprintf("Connecting to elasticsearch @ %s",
 		viper.GetString("elasticsearch.host")))
 
-	client, err := elastic.NewClient(
+	client, err := eelastic.NewClient(
 		elastic.SetURL(viper.GetString("elasticsearch.host")),
 		elastic.SetSniff(viper.GetBool("elasticsearch.sniff")),
 		elastic.SetTraceLog(&EsLogger{Logger: logger.Logger}),

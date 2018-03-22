@@ -20,11 +20,11 @@ import (
 	. "github.com/onsi/gomega"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
+	"github.com/topfreegames/extensions/mongo/interfaces"
 	. "github.com/topfreegames/mqtt-history/app"
 	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
-	"gopkg.in/mgo.v2"
 )
 
 func refreshIndex() {
@@ -43,6 +43,7 @@ func TestHistoryHandler(t *testing.T) {
 	RegisterFailHandler(func(m string, _ ...int) { g.Fail(m) })
 
 	g.Describe("History", func() {
+		ctx := context.Background()
 		esclient := es.GetESClient()
 
 		g.BeforeEach(func() {
@@ -76,12 +77,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -112,12 +113,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -140,12 +141,12 @@ func TestHistoryHandler(t *testing.T) {
 				topics = append(topics, topic)
 				topics = append(topics, "chat/+")
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -185,12 +186,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -222,12 +223,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				refreshIndex()
@@ -248,12 +249,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -295,12 +296,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
@@ -349,12 +350,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
@@ -399,12 +400,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
@@ -453,12 +454,12 @@ func TestHistoryHandler(t *testing.T) {
 			var topics []string
 			topics = append(topics, topic)
 
-			query := func(c *mgo.Collection) error {
+			query := func(c interfaces.Collection) error {
 				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			now := time.Now().UnixNano() / 1000000
@@ -514,12 +515,12 @@ func TestHistoryHandler(t *testing.T) {
 			var topics []string
 			topics = append(topics, topic)
 
-			query := func(c *mgo.Collection) error {
+			query := func(c interfaces.Collection) error {
 				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
@@ -568,12 +569,12 @@ func TestHistoryHandler(t *testing.T) {
 			var topics []string
 			topics = append(topics, topic)
 
-			query := func(c *mgo.Collection) error {
+			query := func(c interfaces.Collection) error {
 				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
@@ -623,12 +624,12 @@ func TestHistoryHandler(t *testing.T) {
 			var topics []string
 			topics = append(topics, topic)
 
-			query := func(c *mgo.Collection) error {
+			query := func(c interfaces.Collection) error {
 				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
-			err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+			err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000

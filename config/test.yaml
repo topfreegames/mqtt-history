@@ -10,5 +10,9 @@ elasticsearch:
 mongo:
   host: "mongodb://localhost:27017"
   allow_anonymous: false
+  database: "mqtt"
 logger:
   level: "debug"
+jaeger:
+  disabled: false
+  samplingProbability: 1.0

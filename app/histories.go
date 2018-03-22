@@ -29,7 +29,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		}
 
 		logger.Logger.Debugf("user %s is asking for histories for topicPrefix %s with args topics=%s from=%d and limit=%d", userID, topicPrefix, topics, from, limit)
-		authenticated, authorizedTopics, err := authenticate(app, userID, topics...)
+		authenticated, authorizedTopics, err := authenticate(c.StdContext(), app, userID, topics...)
 		if err != nil {
 			return err
 		}
@@ -42,7 +42,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 
 			var searchResults *elastic.SearchResult
 			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(app.NumberOfDaysToSearch, boolQuery, from, limit)
+				searchResults, err = DoESQuery(c.StdContext(), app.NumberOfDaysToSearch, boolQuery, from, limit)
 				return err
 			})
 

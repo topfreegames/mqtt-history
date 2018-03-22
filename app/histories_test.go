@@ -18,11 +18,11 @@ import (
 	. "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
 	"github.com/satori/go.uuid"
+	"github.com/topfreegames/extensions/mongo/interfaces"
 	. "github.com/topfreegames/mqtt-history/app"
 	"github.com/topfreegames/mqtt-history/es"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
-	"gopkg.in/mgo.v2"
 )
 
 func TestHistoriesHandler(t *testing.T) {
@@ -32,6 +32,7 @@ func TestHistoriesHandler(t *testing.T) {
 	RegisterFailHandler(func(m string, _ ...int) { g.Fail(m) })
 
 	g.Describe("Histories", func() {
+		ctx := context.Background()
 		esclient := es.GetESClient()
 
 		g.BeforeEach(func() {
@@ -58,12 +59,12 @@ func TestHistoriesHandler(t *testing.T) {
 				topics = append(topics, topic)
 				topics2 = append(topics2, topic2)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -107,12 +108,12 @@ func TestHistoriesHandler(t *testing.T) {
 				topics = append(topics, topic)
 				topics2 = append(topics2, topic2)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -156,12 +157,12 @@ func TestHistoriesHandler(t *testing.T) {
 				//topics = append(topics, topic)
 				//topics = append(topics, topic2)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{
@@ -199,12 +200,12 @@ func TestHistoriesHandler(t *testing.T) {
 				topics = append(topics, topic)
 				topics2 = append(topics2, topic2)
 
-				query := func(c *mgo.Collection) error {
+				query := func(c interfaces.Collection) error {
 					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
 					return fn
 				}
 
-				err := mongoclient.GetCollection("mqtt", "mqtt_acl", query)
+				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
 				testMessage := Message{

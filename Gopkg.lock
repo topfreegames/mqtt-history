@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  name = "github.com/apache/thrift"
+  packages = ["lib/go/thrift"]
+  revision = "b2a4d4ae21c789b689dd162deb819665567f481c"
+  version = "0.10.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/codahale/hdrhistogram"
+  packages = ["."]
+  revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
+
+[[projects]]
   name = "github.com/franela/goblin"
   packages = ["."]
   revision = "e1d62a381788849230ccae88ebf522ba59753477"
@@ -17,8 +29,25 @@
   revision = "c9d3cc542ad199f62c0264286be537f9bce6063c"
 
 [[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/hashicorp/hcl"
-  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  packages = [
+    ".",
+    "hcl/ast",
+    "hcl/parser",
+    "hcl/printer",
+    "hcl/scanner",
+    "hcl/strconv",
+    "hcl/token",
+    "json/parser",
+    "json/scanner",
+    "json/token"
+  ]
   revision = "baeb59c710717b06aac1dbe2270e8192ec593244"
 
 [[projects]]
@@ -35,13 +64,22 @@
 
 [[projects]]
   name = "github.com/labstack/echo"
-  packages = [".","context","engine","engine/standard","log"]
+  packages = [
+    ".",
+    "context",
+    "engine",
+    "engine/standard",
+    "log"
+  ]
   revision = "04e6901d05b58ddbae579a6252a3d1bb3f334adc"
   version = "v2.1"
 
 [[projects]]
   name = "github.com/labstack/gommon"
-  packages = ["color","log"]
+  packages = [
+    "color",
+    "log"
+  ]
   revision = "2d272df536d051e737aea353b86c979d6e88bce0"
   version = "v0.1.0"
 
@@ -68,13 +106,33 @@
 
 [[projects]]
   name = "github.com/newrelic/go-agent"
-  packages = [".","internal","internal/jsonx","internal/logger","internal/sysinfo","internal/utilization"]
+  packages = [
+    ".",
+    "internal",
+    "internal/jsonx",
+    "internal/logger",
+    "internal/sysinfo",
+    "internal/utilization"
+  ]
   revision = "372845e16294c9fa73951b27d5631b601643fc51"
   version = "v1.4.0"
 
 [[projects]]
   name = "github.com/onsi/gomega"
-  packages = [".","format","internal/assertion","internal/asyncassertion","internal/oraclematcher","internal/testingtsupport","matchers","matchers/support/goraph/bipartitegraph","matchers/support/goraph/edge","matchers/support/goraph/node","matchers/support/goraph/util","types"]
+  packages = [
+    ".",
+    "format",
+    "internal/assertion",
+    "internal/asyncassertion",
+    "internal/oraclematcher",
+    "internal/testingtsupport",
+    "matchers",
+    "matchers/support/goraph/bipartitegraph",
+    "matchers/support/goraph/edge",
+    "matchers/support/goraph/node",
+    "matchers/support/goraph/util",
+    "types"
+  ]
   revision = "c90bd38f8da6e92f8b114953db2f0ad7361fb4b4"
 
 [[projects]]
@@ -84,15 +142,20 @@
   revision = "970db520ece77730c7e4724c61121037378659d9"
 
 [[projects]]
-  name = "github.com/pelletier/go-buffruneio"
-  packages = ["."]
-  revision = "df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d"
-  version = "v0.1.0"
+  name = "github.com/opentracing/opentracing-go"
+  packages = [
+    ".",
+    "ext",
+    "log"
+  ]
+  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
-  revision = "5a62685873ef617233ab5f1b825a6e4a758e16cf"
+  revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -112,7 +175,11 @@
 
 [[projects]]
   name = "github.com/spf13/afero"
-  packages = [".","mem","sftp"]
+  packages = [
+    ".",
+    "mem",
+    "sftp"
+  ]
   revision = "20500e2abd0d1f4564a499e83d11d6c73cd58c27"
 
 [[projects]]
@@ -138,7 +205,24 @@
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "7fb2782df3d83e0036cc89f461ed0422628776f4"
+  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
+  version = "v1.0.2"
+
+[[projects]]
+  name = "github.com/topfreegames/extensions"
+  packages = [
+    "echo",
+    "elastic",
+    "http",
+    "jaeger",
+    "jaeger/echo",
+    "jaeger/http",
+    "jaeger/mongo",
+    "mongo",
+    "mongo/interfaces"
+  ]
+  revision = "7d2c690f9d97d7a81dda5b6a369a43c4302bbd1b"
+  version = "v5.8.0"
 
 [[projects]]
   name = "github.com/uber-go/atomic"
@@ -152,13 +236,45 @@
   revision = "d11d2851fcabcf03421c4dbdbc3146fc74eb1035"
 
 [[projects]]
+  name = "github.com/uber/jaeger-client-go"
+  packages = [
+    ".",
+    "config",
+    "internal/baggage",
+    "internal/baggage/remote",
+    "internal/spanlog",
+    "internal/throttler",
+    "log",
+    "rpcmetrics",
+    "thrift-gen/agent",
+    "thrift-gen/baggage",
+    "thrift-gen/jaeger",
+    "thrift-gen/sampling",
+    "thrift-gen/zipkincore",
+    "utils"
+  ]
+  revision = "c107110d057826281414cb964f167bce5be17588"
+  version = "v2.12.0"
+
+[[projects]]
+  name = "github.com/uber/jaeger-lib"
+  packages = ["metrics"]
+  revision = "4267858c0679cd4e47cefed8d7f70fd386cfb567"
+  version = "v1.4.0"
+
+[[projects]]
   name = "github.com/valyala/fasttemplate"
   packages = ["."]
   revision = "3b874956e03f1636d171bda64b130f9135f42cff"
 
 [[projects]]
   name = "golang.org/x/crypto"
-  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh"]
+  packages = [
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "ssh"
+  ]
   revision = "986d3313588aa5c68f1df95eac956f79cf3b2c01"
 
 [[projects]]
@@ -173,18 +289,34 @@
 
 [[projects]]
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
   revision = "d69c40b4be55797923cec7457fac7a244d91a9b6"
 
 [[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
-  packages = [".","bson","internal/json","internal/sasl","internal/scram"]
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
   revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [[projects]]
   name = "gopkg.in/olivere/elastic.v5"
-  packages = [".","uritemplates"]
+  packages = [
+    ".",
+    "uritemplates"
+  ]
   revision = "f1fd7305d0b6270192b27010fe1193568b18e4b6"
   version = "v5.0.39"
 
@@ -196,6 +328,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7a668e52a3f593b9a8661d58317b5fb4556735bb5438c7037ccc2790f2fd5251"
+  inputs-digest = "f29c8df0fb87efa4752c4019a763f95fb548ba12376a04c9688d8f78986b24d8"
   solver-name = "gps-cdcl"
   solver-version = 1

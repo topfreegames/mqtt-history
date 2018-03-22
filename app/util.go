@@ -22,8 +22,8 @@ func getLimitedIndexString(days int) string {
 }
 
 // DoESQuery does a query
-func DoESQuery(numberOfDaysToSearch int, boolQuery *elastic.BoolQuery, from, limit int) (*elastic.SearchResult, error) {
+func DoESQuery(ctx context.Context, numberOfDaysToSearch int, boolQuery *elastic.BoolQuery, from, limit int) (*elastic.SearchResult, error) {
 	esclient := es.GetESClient()
 	return esclient.Search().Index(getLimitedIndexString(numberOfDaysToSearch)).Query(boolQuery).
-		Sort("timestamp", false).From(from).Size(limit).Do(context.TODO())
+		Sort("timestamp", false).From(from).Size(limit).Do(ctx)
 }
