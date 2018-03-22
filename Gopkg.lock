@@ -210,8 +210,7 @@
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
-  version = "v1.0.2"
+  revision = "7fb2782df3d83e0036cc89f461ed0422628776f4"
 
 [[projects]]
   branch = "tracing"
@@ -227,7 +226,7 @@
     "mongo",
     "mongo/interfaces"
   ]
-  revision = "e909178defa0f5a15760b53111e7abc597693788"
+  revision = "d7f796cce834cabcfc0a4cb6c16419753cc485cd"
 
 [[projects]]
   name = "github.com/uber-go/atomic"
