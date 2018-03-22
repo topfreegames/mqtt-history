@@ -3,7 +3,7 @@
 VERSION=$(cat ./app/version.go | grep "VERSION =" | awk ' { print $4 } ' | sed s/\"//g)
 
 docker build -t mqtt-history .
-docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 docker tag mqtt-history:latest tfgco/mqtt-history:$VERSION.$TRAVIS_BUILD_NUMBER
 docker push tfgco/mqtt-history:$VERSION.$TRAVIS_BUILD_NUMBER
 
