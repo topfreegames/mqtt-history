@@ -152,15 +152,10 @@
   version = "v1.0.2"
 
 [[projects]]
-  name = "github.com/pelletier/go-buffruneio"
-  packages = ["."]
-  revision = "df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d"
-  version = "v0.1.0"
-
-[[projects]]
   name = "github.com/pelletier/go-toml"
   packages = ["."]
-  revision = "5a62685873ef617233ab5f1b825a6e4a758e16cf"
+  revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -210,10 +205,10 @@
 [[projects]]
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "7fb2782df3d83e0036cc89f461ed0422628776f4"
+  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
+  version = "v1.0.2"
 
 [[projects]]
-  branch = "tracing"
   name = "github.com/topfreegames/extensions"
   packages = [
     "echo",
@@ -226,7 +221,8 @@
     "mongo",
     "mongo/interfaces"
   ]
-  revision = "d7f796cce834cabcfc0a4cb6c16419753cc485cd"
+  revision = "7d2c690f9d97d7a81dda5b6a369a43c4302bbd1b"
+  version = "v5.8.0"
 
 [[projects]]
   name = "github.com/uber-go/atomic"
@@ -332,6 +328,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "38bfdd98771f21b3af722d32e536d1b07a3e9260e85f1ba19a3aca83c479e6d4"
+  inputs-digest = "f29c8df0fb87efa4752c4019a763f95fb548ba12376a04c9688d8f78986b24d8"
   solver-name = "gps-cdcl"
   solver-version = 1

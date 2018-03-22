@@ -61,4 +61,4 @@
 
 [[constraint]]
   name = "github.com/topfreegames/extensions"
-  branch = "tracing"
+  version = "5.8.0"
