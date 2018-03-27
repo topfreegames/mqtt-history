@@ -10,6 +10,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo/engine"
@@ -17,7 +18,9 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/echo"
+	extechomiddleware "github.com/topfreegames/extensions/echo/middleware"
 	"github.com/topfreegames/extensions/jaeger"
+	extnethttpmiddleware "github.com/topfreegames/extensions/middleware"
 	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/uber-go/zap"
 )
@@ -29,19 +32,24 @@ type App struct {
 	Host                 string
 	API                  *echo.Echo
 	Engine               engine.Server
+	ConfigPath           string
+	Config               *viper.Viper
 	NewRelic             newrelic.Application
 	NumberOfDaysToSearch int
+	DDStatsD             *extnethttpmiddleware.DogStatsD
 }
 
 // GetApp creates an app given the parameters
-func GetApp(host string, port int, debug bool) *App {
+func GetApp(host string, port int, debug bool, configPath string) *App {
 	logger.SetupLogger(viper.GetString("logger.level"))
 	logger.Logger.Debug(
 		fmt.Sprintf("Starting app with host: %s, port: %d", host, port))
 	app := &App{
-		Host:  host,
-		Port:  port,
-		Debug: debug,
+		Host:       host,
+		Port:       port,
+		Config:     viper.New(),
+		ConfigPath: configPath,
+		Debug:      debug,
 	}
 	app.Configure()
 	return app
@@ -50,17 +58,19 @@ func GetApp(host string, port int, debug bool) *App {
 // Configure configures the application
 func (app *App) Configure() {
 	app.setConfigurationDefaults()
+	app.loadConfiguration()
+
 	app.configureSentry()
 
 	app.configureNewRelic()
+	app.configureStatsD()
 	app.configureJaeger()
 
-	app.loadConfiguration()
 	app.configureApplication()
 }
 
 func (app *App) configureNewRelic() {
-	newRelicKey := viper.GetString("newrelic.key")
+	newRelicKey := app.Config.GetString("newrelic.key")
 	config := newrelic.NewConfig("mqtt-history", newRelicKey)
 	if newRelicKey == "" {
 		logger.Logger.Info("New Relic is not enabled..")
@@ -76,10 +86,21 @@ func (app *App) configureNewRelic() {
 	logger.Logger.Info("Initialized New Relic successfully.")
 }
 
+func (app *App) configureStatsD() {
+	logger.Logger.Info("Starting DogStatsD..")
+	ddstatsd, err := extnethttpmiddleware.NewDogStatsD(app.Config)
+	if err != nil {
+		logger.Logger.Error("Failed to initialize DogStatsD.", zap.Error(err))
+		panic(fmt.Sprintf("Could not initialize DogStatsD, err: %s", err))
+	}
+	app.DDStatsD = ddstatsd
+	logger.Logger.Info("Initialized DogStatsD successfully.")
+}
+
 func (app *App) configureJaeger() {
 	opts := jaeger.Options{
-		Disabled:    viper.GetBool("jaeger.disabled"),
-		Probability: viper.GetFloat64("jaeger.samplingProbability"),
+		Disabled:    app.Config.GetBool("jaeger.disabled"),
+		Probability: app.Config.GetFloat64("jaeger.samplingProbability"),
 		ServiceName: "mqtt-history",
 	}
 
@@ -90,14 +111,20 @@ func (app *App) configureJaeger() {
 }
 
 func (app *App) setConfigurationDefaults() {
-	viper.SetDefault("healthcheck.workingText", "WORKING")
-	viper.SetDefault("mongo.database", "mqtt")
+	app.Config.SetDefault("healthcheck.workingText", "WORKING")
+	app.Config.SetDefault("mongo.database", "mqtt")
 }
 
 func (app *App) loadConfiguration() {
-	viper.AutomaticEnv()
+	logger.Logger.Info("ConfigPath: " + app.ConfigPath)
 
-	if err := viper.ReadInConfig(); err == nil {
+	app.Config.SetConfigType("yaml")
+	app.Config.SetConfigFile(app.ConfigPath)
+	app.Config.SetEnvPrefix("mqtthistory")
+	app.Config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	app.Config.AutomaticEnv()
+
+	if err := app.Config.ReadInConfig(); err == nil {
 		logger.Logger.Debug("Config file read successfully")
 	} else {
 		panic(fmt.Sprintf("Could not load configuration file, err: %s", err))
@@ -105,14 +132,14 @@ func (app *App) loadConfiguration() {
 }
 
 func (app *App) configureSentry() {
-	sentryURL := viper.GetString("sentry.url")
+	sentryURL := app.Config.GetString("sentry.url")
 	logger.Logger.Info(fmt.Sprintf("Configuring sentry with URL %s", sentryURL))
 	raven.SetDSN(sentryURL)
 }
 
 func (app *App) configureApplication() {
 	app.Engine = standard.New(fmt.Sprintf("%s:%d", app.Host, app.Port))
-	app.NumberOfDaysToSearch = viper.GetInt("numberOfDaysToSearch")
+	app.NumberOfDaysToSearch = app.Config.GetInt("numberOfDaysToSearch")
 	app.API = echo.New()
 	a := app.API
 	_, w, _ := os.Pipe()
@@ -123,6 +150,7 @@ func (app *App) configureApplication() {
 	a.Use(NewSentryMiddleware(app).Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
+	a.Use(extechomiddleware.NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
 	a.Use(NewNewRelicMiddleware(app, zap.New(
 		zap.NewJSONEncoder(),
 	)).Serve)
