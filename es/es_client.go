@@ -40,7 +40,7 @@ func configure() {
 }
 
 func setConfigurationDefaults() {
-	viper.SetDefault("elasticsearch.host", "http://localhost:9200")
+	viper.SetDefault("elasticsearch.host", "http://localhost:9123")
 	viper.SetDefault("elasticsearch.sniff", false)
 	viper.SetDefault("elasticsearch.indexMappings", map[string]string{})
 }

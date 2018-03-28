@@ -24,10 +24,12 @@ import (
 	"github.com/topfreegames/mqtt-history/app"
 )
 
+const cfgFile = "../config/test.yaml"
+
 // GetDefaultTestApp retrieve a default app for testing purposes
 func GetDefaultTestApp() *app.App {
-	viper.SetConfigFile("../config/test.yaml")
-	app := app.GetApp("0.0.0.0", 8888, true)
+	viper.SetConfigFile(cfgFile)
+	app := app.GetApp("0.0.0.0", 8888, true, cfgFile)
 
 	return app
 }

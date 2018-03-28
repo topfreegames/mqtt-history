@@ -16,3 +16,9 @@ logger:
 jaeger:
   disabled: false
   samplingProbability: 1.0
+extensions:
+  dogstatsd:
+    host: localhost:8125
+    prefix: mqtthistory.
+    tags_prefix: ""
+    rate: 1

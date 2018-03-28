@@ -19,6 +19,7 @@ var startCmd = &cobra.Command{
 			host,
 			port,
 			debug,
+			CfgFile,
 		)
 		app.Start()
 	},

@@ -6,10 +6,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const testCfgFile = "../config/test.yaml"
+const invalidCfgFile = "../config/invalid"
+
 func TestGetApp(t *testing.T) {
 	viper.SetDefault("logger.level", "DEBUG")
-	viper.SetConfigFile("../config/test.yaml")
-	app := GetApp("127.0.0.1", 9999, false)
+	viper.SetConfigFile(testCfgFile)
+	app := GetApp("127.0.0.1", 9999, false, testCfgFile)
 	if app.Port != 9999 || app.Host != "127.0.0.1" {
 		t.Fail()
 	}
@@ -20,6 +23,6 @@ func TestGetApp(t *testing.T) {
 		}
 	}()
 
-	viper.SetConfigFile("../config/invalid")
-	app = GetApp("127.0.0.1", 9999, false)
+	viper.SetConfigFile(invalidCfgFile)
+	app = GetApp("127.0.0.1", 9999, false, invalidCfgFile)
 }
