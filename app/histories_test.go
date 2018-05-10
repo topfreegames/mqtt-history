@@ -17,10 +17,10 @@ import (
 
 	. "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/topfreegames/extensions/mongo/interfaces"
 	. "github.com/topfreegames/mqtt-history/app"
-	"github.com/topfreegames/mqtt-history/es"
+	"github.com/topfreegames/mqtt-history/models"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
 )
@@ -33,209 +33,205 @@ func TestHistoriesHandler(t *testing.T) {
 
 	g.Describe("Histories", func() {
 		ctx := context.Background()
-		esclient := es.GetESClient()
-
-		g.BeforeEach(func() {
-			refreshIndex()
-		})
+		a := GetDefaultTestApp()
 
 		g.Describe("Histories Handler", func() {
 			g.It("It should return 401 if the user is not authorized into the topics", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				path := fmt.Sprintf("/history/chat/test_?userid=test:test&topics=%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				path := fmt.Sprintf("/history/chat/test_?userid=test:test&topics=%s", testID)
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
 
 			g.It("It should return 200 if the user is authorized into the topics", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test/%s", testId)
-				topic2 := fmt.Sprintf("chat/test/%s", testId2)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				testID2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test/%s", testID)
+				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
 				var topics, topics2 []string
 				topics = append(topics, topic)
 				topics2 = append(topics2, topic2)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics}, &ACL{Username: "test:test", Pubsub: topics2})
 					return fn
 				}
 
 				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now().AddDate(0, 0, -1),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
 
-				testMessage2 := Message{
+				testMessage2 := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test3\":\"test4\"}",
 					Topic:     topic2,
 				}
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
+					testMessage.Timestamp)
+				Expect(err).To(BeNil())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
+					testMessage2.Timestamp)
 				Expect(err).To(BeNil())
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage2).Do(context.TODO())
-				Expect(err).To(BeNil())
-
-				refreshIndex()
-				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testId, testId2)
+				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-				g.Assert(messages[0].Payload).Equal("{\"test3\":\"test4\"}")
-				g.Assert(messages[1].Payload).Equal("{\"test1\":\"test2\"}")
+				g.Assert(len(messages)).Equal(2)
+				g.Assert(messages[0].Payload).Equal("{\"test1\":\"test2\"}")
+				g.Assert(messages[1].Payload).Equal("{\"test3\":\"test4\"}")
 			})
 
 			g.It("It should return 200 if the user is authorized into at least one topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test/%s", testId)
-				topic2 := fmt.Sprintf("chat/test/%s", testId2)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				testID2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test/%s", testID)
+				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
 				var topics, topics2 []string
 				topics = append(topics, topic)
 				topics2 = append(topics2, topic2)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
 				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now().AddDate(0, 0, -1),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
 
-				testMessage2 := Message{
+				testMessage2 := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test3\":\"test4\"}",
 					Topic:     topic2,
 				}
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
+					testMessage.Timestamp)
 				Expect(err).To(BeNil())
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage2).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
+					testMessage2.Timestamp)
 				Expect(err).To(BeNil())
 
-				refreshIndex()
-				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testId, testId2)
+				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-				g.Assert(messages[0].Payload).Equal("{\"test1\":\"test2\"}")
 				g.Assert(len(messages)).Equal(1)
+				g.Assert(messages[0].Payload).Equal("{\"test1\":\"test2\"}")
 			})
 
 			g.It("It should return 401 if the user is not authorized in any topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test/%s", testId)
-				topic2 := fmt.Sprintf("chat/test/%s", testId2)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				testID2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test/%s", testID)
+				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
 				var topics []string
 				//topics = append(topics, topic)
 				//topics = append(topics, topic2)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
 				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now().AddDate(0, 0, -1),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
 
-				testMessage2 := Message{
+				testMessage2 := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test3\":\"test4\"}",
 					Topic:     topic2,
 				}
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
+					testMessage.Timestamp)
 				Expect(err).To(BeNil())
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage2).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
+					testMessage2.Timestamp)
 				Expect(err).To(BeNil())
 
-				refreshIndex()
-				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testId, testId2)
+				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
 
 			g.It("It should return 200 if the user is authorized into the topics via wildcard", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				testId2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test/%s", testId)
-				topic2 := fmt.Sprintf("chat/test/%s", testId2)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				testID2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test/%s", testID)
+				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
 				var topics, topics2 []string
 				topics = append(topics, topic)
 				topics2 = append(topics2, topic2)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics}, &Acl{Username: "test:test", Pubsub: topics2})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics}, &ACL{Username: "test:test", Pubsub: topics2})
 					return fn
 				}
 
 				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now().AddDate(0, 0, -1),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
 
-				testMessage2 := Message{
+				testMessage2 := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test3\":\"test4\"}",
 					Topic:     topic2,
 				}
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
+					testMessage.Timestamp)
 				Expect(err).To(BeNil())
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage2).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
+					testMessage2.Timestamp)
 				Expect(err).To(BeNil())
 
-				refreshIndex()
-				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testId, testId2)
+				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-				g.Assert(messages[0].Payload).Equal("{\"test3\":\"test4\"}")
-				g.Assert(messages[1].Payload).Equal("{\"test1\":\"test2\"}")
+				g.Assert(len(messages)).Equal(2)
+				g.Assert(messages[0].Payload).Equal("{\"test1\":\"test2\"}")
+				g.Assert(messages[1].Payload).Equal("{\"test3\":\"test4\"}")
 			})
 		})
 	})

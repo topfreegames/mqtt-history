@@ -2,13 +2,13 @@ package app
 
 import (
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/logger"
-	"gopkg.in/olivere/elastic.v5"
+	"github.com/topfreegames/mqtt-history/models"
 )
 
 // HistoriesHandler is the handler responsible for sending multiples rooms history to the player
@@ -19,13 +19,17 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		userID := c.QueryParam("userid")
 		topicsSuffix := strings.Split(c.QueryParam("topics"), ",")
 		topics := make([]string, len(topicsSuffix))
-		from, err := strconv.Atoi(c.QueryParam("from"))
+		from, err := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 		limit, err := strconv.Atoi(c.QueryParam("limit"))
 		for i, topicSuffix := range topicsSuffix {
 			topics[i] = topicPrefix + "/" + topicSuffix
 		}
 		if limit == 0 {
-			limit = 10
+			limit = app.Defaults.LimitOfMessages
+		}
+
+		if from == 0 {
+			from = time.Now().Unix()
 		}
 
 		logger.Logger.Debugf("user %s is asking for histories for topicPrefix %s with args topics=%s from=%d and limit=%d", userID, topicPrefix, topics, from, limit)
@@ -34,30 +38,17 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			return err
 		}
 
-		if authenticated {
-			boolQuery := elastic.NewBoolQuery()
-			topicBoolQuery := elastic.NewBoolQuery()
-			topicBoolQuery.Should(elastic.NewTermsQuery("topic", authorizedTopics...))
-			boolQuery.Must(topicBoolQuery)
-
-			var searchResults *elastic.SearchResult
-			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(c.StdContext(), app.NumberOfDaysToSearch, boolQuery, from, limit)
-				return err
-			})
-
-			if err != nil {
-				return err
-			}
-			messages := []Message{}
-			var ttyp Message
-			for _, item := range searchResults.Each(reflect.TypeOf(ttyp)) {
-				if t, ok := item.(Message); ok {
-					messages = append(messages, t)
-				}
-			}
-			return c.JSON(http.StatusOK, messages)
+		if !authenticated {
+			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
-		return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
+
+		qnt := app.Defaults.BucketQuantityOnSelect
+		messages := []*models.Message{}
+		for _, topic := range authorizedTopics {
+			newMessages := app.Cassandra.SelectMessagesInBucket(c.StdContext(), topic, from, qnt, limit)
+			messages = append(messages, newMessages...)
+		}
+
+		return c.JSON(http.StatusOK, messages)
 	}
 }

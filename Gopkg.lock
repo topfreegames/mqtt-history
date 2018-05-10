@@ -32,9 +32,10 @@
   revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
 
 [[projects]]
+  branch = "master"
   name = "github.com/franela/goblin"
   packages = ["."]
-  revision = "e1d62a381788849230ccae88ebf522ba59753477"
+  revision = "cd5d08fb4ede9eaac1812fdb513552e7404eae2e"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -60,6 +61,17 @@
   version = "v6.10.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/gocql/gocql"
+  packages = [
+    ".",
+    "internal/lru",
+    "internal/murmur",
+    "internal/streams"
+  ]
+  revision = "181004e14a3fb735efcc826a4256369d0c96747b"
+
+[[projects]]
   name = "github.com/golang/mock"
   packages = ["gomock"]
   revision = "13f360950a79f5864a972c786a10a50e44b69541"
@@ -72,6 +84,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  revision = "553a641470496b2327abcac10b36396bd98e45c9"
+
+[[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
   revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
@@ -82,6 +100,12 @@
   packages = ["."]
   revision = "53c1911da2b537f792e7cafcb446b05ffe33b996"
   version = "v1.6.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hailocab/go-hostpool"
+  packages = ["."]
+  revision = "e80d13ce29ede4452c43dea11e79b9bc8a15b478"
 
 [[projects]]
   name = "github.com/hashicorp/hcl"
@@ -272,6 +296,8 @@
 [[projects]]
   name = "github.com/topfreegames/extensions"
   packages = [
+    "cassandra",
+    "cassandra/interfaces",
     "dogstatsd",
     "echo",
     "echo/middleware",
@@ -287,8 +313,8 @@
     "oauth2",
     "pg/interfaces"
   ]
-  revision = "08fc30486832386f7a27c2d9bd4c48b0e43e7cdf"
-  version = "v5.10.0"
+  revision = "6899921e24d80b91787fac4b8d1810bb1e557c27"
+  version = "v5.18.1"
 
 [[projects]]
   name = "github.com/uber-go/atomic"
@@ -399,6 +425,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "gopkg.in/inf.v0"
+  packages = ["."]
+  revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
+  version = "v0.9.1"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
   packages = [
@@ -427,6 +459,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3756fe9193967319ac92fc212ab7d06f9928fc0c030f17c6744b6fb5dd2a3584"
+  inputs-digest = "43d66d8a63f38339bd46c91fee9783cabdc046072c1445be6e191fa9deb1474c"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,6 +1,10 @@
 version: '2'
 
 services:
+  cassandra:
+    image: cassandra:3.11
+    ports:
+      - 9042:9042
   mosquitto:
     image: eclipse-mosquitto:1.4.12
     ports:

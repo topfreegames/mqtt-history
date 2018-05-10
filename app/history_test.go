@@ -7,7 +7,6 @@
 package app_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,15 +21,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/mongo/interfaces"
 	. "github.com/topfreegames/mqtt-history/app"
-	"github.com/topfreegames/mqtt-history/es"
+	"github.com/topfreegames/mqtt-history/models"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
 )
-
-func refreshIndex() {
-	_, err := http.Post("http://localhost:9123/_refresh", "application/json", bytes.NewBufferString("{}"))
-	Expect(err).To(BeNil())
-}
 
 func msToTime(ms int64) time.Time {
 	return time.Unix(0, ms*int64(time.Millisecond))
@@ -44,41 +38,34 @@ func TestHistoryHandler(t *testing.T) {
 
 	g.Describe("History", func() {
 		ctx := context.Background()
-		esclient := es.GetESClient()
-
-		g.BeforeEach(func() {
-			refreshIndex()
-		})
+		a := GetDefaultTestApp()
 
 		g.Describe("History Handler", func() {
 			g.It("It should return 401 if the user is not authorized into the topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				path := fmt.Sprintf("/history/chat/test_%s?userid=test:test", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				path := fmt.Sprintf("/history/chat/test_%s?userid=test:test", testID)
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
 
 			g.It("It should return 200 if user is unauthorized into the topic but anonymous is enabled", func() {
 				viper.Set("mongo.allow_anonymous", true)
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				path := fmt.Sprintf("/history/chat/test_%s?userid=test:test", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				path := fmt.Sprintf("/history/chat/test_%s?userid=test:test", testID)
 				status, _ := Get(a, path, t)
 				viper.Set("mongo.allow_anonymous", false)
 				g.Assert(status).Equal(http.StatusOK)
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic in mongo", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
@@ -86,35 +73,33 @@ func TestHistoryHandler(t *testing.T) {
 
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 				Expect(err).To(BeNil())
 
-				refreshIndex()
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 
 			})
 
 			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
@@ -122,27 +107,25 @@ func TestHistoryHandler(t *testing.T) {
 
 				Expect(err).To(BeNil())
 
-				refreshIndex()
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 			})
 
 			g.It("Should retrieve 1 message from history when topic matches wildcard", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 				topics = append(topics, "chat/+")
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
@@ -150,20 +133,19 @@ func TestHistoryHandler(t *testing.T) {
 
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 				Expect(err).To(BeNil())
 
-				refreshIndex()
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 			})
@@ -171,23 +153,21 @@ func TestHistoryHandler(t *testing.T) {
 
 		g.Describe("History Since Handler", func() {
 			g.It("It should return 401 if the user is not authorized into the topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				path := fmt.Sprintf("/historysince/chat/test_%s?userid=test:test", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				path := fmt.Sprintf("/historysince/chat/test_%s?userid=test:test", testID)
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
@@ -195,69 +175,64 @@ func TestHistoryHandler(t *testing.T) {
 
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
 
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 				Expect(err).To(BeNil())
-
-				refreshIndex()
 
 				path := fmt.Sprintf("/historysince/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 			})
 
 			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
 				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
-				refreshIndex()
 				path := fmt.Sprintf("/historysince/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 			})
 
 			g.It("It should return 200 if the user is authorized into the topic", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
 				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
 				Expect(err).To(BeNil())
 
-				testMessage := Message{
+				testMessage := models.Message{
 					Timestamp: time.Now(),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
@@ -265,22 +240,19 @@ func TestHistoryHandler(t *testing.T) {
 
 				path := fmt.Sprintf(
 					"/historysince/%s?userid=test:test&since=%d",
-					topic, (time.Now().UnixNano() / 1000000000), // now
+					topic, (time.Now().UnixNano() / int64(1000*1000*1000)), // now
 				)
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp, 1*time.Hour)
 				Expect(err).To(BeNil())
-
-				// Update indexes
-				refreshIndex()
 
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 				Expect(len(messages)).To(Equal(1))
-				var message Message
+				var message models.Message
 				for i := 0; i < len(messages); i++ {
 					message = messages[i]
 					Expect(message.Topic).To(Equal(topic))
@@ -289,15 +261,14 @@ func TestHistoryHandler(t *testing.T) {
 
 			g.It("It should return 200 if the user is authorized into the topic and since is in the future", func() {
 				g.Timeout(10 * time.Second)
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
@@ -305,36 +276,33 @@ func TestHistoryHandler(t *testing.T) {
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
-				testMessage := Message{}
+				testMessage := models.Message{}
 				second := int64(1000)
 				baseTime := now - (second * 70)
 				for i := 0; i < 150; i++ {
 					messageTime := baseTime + 1*second
-					testMessage = Message{
+					testMessage = models.Message{
 						Timestamp: msToTime(messageTime),
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+					err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 					Expect(err).To(BeNil())
 				}
 
-				// Update indexes
-				refreshIndex()
-
 				path := fmt.Sprintf(
 					"/historysince/%s?userid=test:test&since=%d",
-					topic, ((time.Now().UnixNano() / 100000000) * 200), // now
+					topic, ((time.Now().UnixNano() / 100000000) * 200),
 				)
 
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 				Expect(len(messages)).To(Equal(100))
-				var message Message
+				var message models.Message
 				for i := 0; i < len(messages); i++ {
 					message = messages[i]
 					Expect(message.Topic).To(Equal(topic))
@@ -343,15 +311,14 @@ func TestHistoryHandler(t *testing.T) {
 
 			g.It("It should return 200 if the user is authorized into the topic and since is negative", func() {
 				g.Timeout(10 * time.Second)
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
@@ -359,33 +326,30 @@ func TestHistoryHandler(t *testing.T) {
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
-				testMessage := Message{}
+				testMessage := models.Message{}
 				second := int64(1000)
 				baseTime := now - (second * 70)
 				for i := 0; i < 150; i++ {
 					messageTime := baseTime + 1*second
-					testMessage = Message{
+					testMessage = models.Message{
 						Timestamp: msToTime(messageTime),
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+					err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 					Expect(err).To(BeNil())
 				}
-
-				// Update indexes
-				refreshIndex()
 
 				path := fmt.Sprintf("/historysince/%s?userid=test:test&since=-1&limit=100", topic)
 
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 				Expect(len(messages)).To(Equal(100))
-				var message Message
+				var message models.Message
 				for i := 0; i < len(messages); i++ {
 					message = messages[i]
 					Expect(message.Topic).To(Equal(topic))
@@ -393,15 +357,14 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("Should retrieve 10 messages when limit is 10 and the history size is greater than this", func() {
-				a := GetDefaultTestApp()
-				testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				topic := fmt.Sprintf("chat/test_%s", testId)
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
 
 				var topics []string
 				topics = append(topics, topic)
 
 				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 					return fn
 				}
 
@@ -409,22 +372,19 @@ func TestHistoryHandler(t *testing.T) {
 				Expect(err).To(BeNil())
 
 				now := time.Now().UnixNano() / 1000000
-				testMessage := Message{}
+				testMessage := models.Message{}
 				second := int64(1000)
 				baseTime := now - (second * 70)
 				for i := 0; i <= 30; i++ {
 					messageTime := baseTime + 1*second
-					testMessage = Message{
+					testMessage = models.Message{
 						Timestamp: msToTime(messageTime),
 						Payload:   "{\"test1\":\"test2\"}",
 						Topic:     topic,
 					}
-					_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+					err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 					Expect(err).To(BeNil())
 				}
-
-				// Update indexes
-				refreshIndex()
 
 				path := fmt.Sprintf(
 					"/historysince/%s?userid=test:test&since=%d&limit=%d&from=%d",
@@ -434,11 +394,11 @@ func TestHistoryHandler(t *testing.T) {
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
-				var messages []Message
+				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 				Expect(len(messages)).To(Equal(10))
-				var message Message
+				var message models.Message
 				for i := 0; i < len(messages); i++ {
 					message = messages[i]
 					Expect(message.Topic).To(Equal(topic))
@@ -447,15 +407,14 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve only messages from the exact topic", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
+			testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+			topic := fmt.Sprintf("chat/test_%s", testID)
 
 			var topics []string
 			topics = append(topics, topic)
 
 			query := func(c interfaces.Collection) error {
-				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+				fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
@@ -463,30 +422,27 @@ func TestHistoryHandler(t *testing.T) {
 			Expect(err).To(BeNil())
 
 			now := time.Now().UnixNano() / 1000000
-			testMessage := Message{}
+			testMessage := models.Message{}
 			second := int64(1000)
 			baseTime := now - (second * 70)
 
 			messageTime := baseTime + 1*second
-			testMessage = Message{
+			testMessage = models.Message{
 				Timestamp: msToTime(messageTime),
 				Payload:   "{\"test1\":\"test2\"}",
 				Topic:     topic,
 			}
-			_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+			err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 			Expect(err).To(BeNil())
 
 			messageTime = baseTime + 1*second
-			testMessage = Message{
+			testMessage = models.Message{
 				Timestamp: msToTime(messageTime),
 				Payload:   "{\"test1\":\"test2\"}",
 				Topic:     fmt.Sprintf("%s/moremore", topic),
 			}
-			_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+			err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 			Expect(err).To(BeNil())
-
-			// Update indexes
-			refreshIndex()
 
 			path := fmt.Sprintf(
 				"/historysince/%s?userid=test:test&since=%d&limit=%d&from=%d",
@@ -496,11 +452,11 @@ func TestHistoryHandler(t *testing.T) {
 			status, body := Get(a, path, t)
 			g.Assert(status).Equal(http.StatusOK)
 
-			var messages []Message
+			var messages []models.Message
 			err = json.Unmarshal([]byte(body), &messages)
 			Expect(err).To(BeNil())
 			Expect(len(messages)).To(Equal(1))
-			var message Message
+			var message models.Message
 			for i := 0; i < len(messages); i++ {
 				message = messages[i]
 				Expect(message.Topic).To(Equal(topic))
@@ -508,15 +464,14 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve all messages eve if limit is greater than the size of current history", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
+			testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+			topic := fmt.Sprintf("chat/test_%s", testID)
 
 			var topics []string
 			topics = append(topics, topic)
 
 			query := func(c interfaces.Collection) error {
-				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+				fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
@@ -524,23 +479,17 @@ func TestHistoryHandler(t *testing.T) {
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
-			testMessage := Message{}
+			testMessage := models.Message{}
 			for i := 0; i < 3; i++ {
 				messageTime := time.Now().UnixNano() / 1000000
-				testMessage = Message{
+				testMessage = models.Message{
 					Timestamp: msToTime(messageTime),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 				Expect(err).To(BeNil())
 			}
-
-			// Sorry bout this =/
-			time.Sleep(200 * time.Millisecond)
-
-			// Update indexes
-			refreshIndex()
 
 			path := fmt.Sprintf(
 				"/historysince/%s?userid=test:test&since=%d&limit=%d&from=%d",
@@ -550,11 +499,11 @@ func TestHistoryHandler(t *testing.T) {
 			status, body := Get(a, path, t)
 			g.Assert(status).Equal(http.StatusOK)
 
-			var messages []Message
+			var messages []models.Message
 			err = json.Unmarshal([]byte(body), &messages)
 			Expect(err).To(BeNil())
 			Expect(len(messages)).To(Equal(3))
-			var message Message
+			var message models.Message
 			for i := 0; i < len(messages); i++ {
 				message = messages[i]
 				Expect(message.Topic).To(Equal(topic))
@@ -562,15 +511,14 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve 1 message from history when limit is 1 and theres more than 1 message", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
+			testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+			topic := fmt.Sprintf("chat/test_%s", testID)
 
 			var topics []string
 			topics = append(topics, topic)
 
 			query := func(c interfaces.Collection) error {
-				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+				fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
@@ -578,23 +526,17 @@ func TestHistoryHandler(t *testing.T) {
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
-			testMessage := Message{}
+			testMessage := models.Message{}
 			for i := 0; i < 3; i++ {
 				messageTime := time.Now().UnixNano() / 1000000
-				testMessage = Message{
+				testMessage = models.Message{
 					Timestamp: msToTime(messageTime),
 					Payload:   "{\"test1\":\"test2\"}",
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 				Expect(err).To(BeNil())
 			}
-
-			// Sorry bout this =/
-			time.Sleep(200 * time.Millisecond)
-
-			// Update indexes
-			refreshIndex()
 
 			path := fmt.Sprintf(
 				"/historysince/%s?userid=test:test&since=%d&limit=%d&from=%d",
@@ -604,12 +546,12 @@ func TestHistoryHandler(t *testing.T) {
 			status, body := Get(a, path, t)
 			g.Assert(status).Equal(http.StatusOK)
 
-			var messages []Message
+			var messages []models.Message
 			err = json.Unmarshal([]byte(body), &messages)
 			Expect(err).To(BeNil())
 			Expect(len(messages)).To(Equal(1))
 
-			var message Message
+			var message models.Message
 			for i := 0; i < len(messages); i++ {
 				message = messages[i]
 				Expect(message.Topic).To(Equal(topic))
@@ -617,15 +559,14 @@ func TestHistoryHandler(t *testing.T) {
 		})
 
 		g.It("Should retrieve 1 message from history when topic matches wildcard", func() {
-			a := GetDefaultTestApp()
-			testId := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-			topic := fmt.Sprintf("chat/test_%s", testId)
+			testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+			topic := fmt.Sprintf("chat/test_%s", testID)
 
 			var topics []string
 			topics = append(topics, topic)
 
 			query := func(c interfaces.Collection) error {
-				fn := c.Insert(&Acl{Username: "test:test", Pubsub: topics})
+				fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
 				return fn
 			}
 
@@ -633,23 +574,17 @@ func TestHistoryHandler(t *testing.T) {
 			Expect(err).To(BeNil())
 
 			startTime := time.Now().UnixNano() / 1000000
-			testMessage := Message{}
+			testMessage := models.Message{}
 			for i := 0; i < 3; i++ {
 				messageTime := time.Now().UnixNano() / 1000000
-				testMessage = Message{
+				testMessage = models.Message{
 					Timestamp: msToTime(messageTime),
-					Payload:   "{\"test1\":\"test2\"}",
+					Payload:   `{"test1":"test2"}`,
 					Topic:     topic,
 				}
-				_, err = esclient.Index().Index(GetChatIndex()).Type("message").BodyJson(testMessage).Do(context.TODO())
+				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, testMessage.Timestamp)
 				Expect(err).To(BeNil())
 			}
-
-			// Sorry bout this =/
-			time.Sleep(200 * time.Millisecond)
-
-			// Update indexes
-			refreshIndex()
 
 			path := fmt.Sprintf(
 				"/historysince/%s?userid=test:test&since=%d&limit=%d&from=%d",
@@ -659,12 +594,12 @@ func TestHistoryHandler(t *testing.T) {
 			status, body := Get(a, path, t)
 			g.Assert(status).Equal(http.StatusOK)
 
-			var messages []Message
+			var messages []models.Message
 			err = json.Unmarshal([]byte(body), &messages)
 			Expect(err).To(BeNil())
 			Expect(len(messages)).To(Equal(1))
 
-			var message Message
+			var message models.Message
 			for i := 0; i < len(messages); i++ {
 				message = messages[i]
 				Expect(message.Topic).To(Equal(topic))

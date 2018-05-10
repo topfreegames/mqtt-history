@@ -17,7 +17,7 @@ build:
 
 run-containers:
 	@cd test_containers && docker-compose up -d && cd ..
-	@/bin/bash -c "until docker exec testcontainers_elasticsearch_1 curl localhost:9200; do echo 'Waiting for Elasticsearch...' && sleep 1; done"
+	@/bin/bash -c "until docker exec test_containers_elasticsearch_1 curl localhost:9200; do echo 'Waiting for Elasticsearch...' && sleep 1; done"
 
 kill-containers:
 	@cd test_containers && docker-compose stop && cd ..
@@ -25,9 +25,17 @@ kill-containers:
 create-es-index-template:
 	@bash create_es_index_template.sh
 
+CASSANDRA_CONTAINER := mqtt-history_cassandra_1
+create-cassandra-table:
+	@until docker exec $(CASSANDRA_CONTAINER) cqlsh -e 'describe cluster'; do echo 'Waiting for Cassandra...' && sleep 2; done
+	@echo 'Creating keyspace and table on Cassandra'
+	@docker exec $(CASSANDRA_CONTAINER) cqlsh -e "$$(cat scripts/create.cql)";
+	@echo 'Done'
+
 run-tests: run-containers
-	@/bin/bash -c "until docker exec testcontainers_elasticsearch_1 curl localhost:9200; do echo 'Waiting for Elasticsearch...' && sleep 1; done"
+	@/bin/bash -c "until docker exec test_containers_elasticsearch_1 curl localhost:9200; do echo 'Waiting for Elasticsearch...' && sleep 1; done"
 	@make create-es-index-template
+	@make CASSANDRA_CONTAINER=test_containers_cassandra_1 create-cassandra-table
 	@make coverage
 	@make kill-containers
 
@@ -36,6 +44,7 @@ test: run-tests
 coverage:
 	@echo "mode: count" > coverage-all.out
 	@$(foreach pkg,$(PACKAGES),\
+		echo "Testing $(pkg)" &&\
 		go test -coverprofile=coverage.out -covermode=count $(pkg) || exit 1 &&\
 		tail -n +2 coverage.out >> coverage-all.out;)
 
@@ -43,7 +52,7 @@ run:
 	@go run main.go start
 
 deps:
-	@dep ensure
+	@docker-compose up -d mongo cassandra
 
 cross: cross-linux cross-darwin
 

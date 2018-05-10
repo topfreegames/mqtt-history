@@ -6,22 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"reflect"
 	"strconv"
 	"time"
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/logger"
-	"gopkg.in/olivere/elastic.v5"
 )
-
-// Message represents a chat message
-type Message struct {
-	Timestamp time.Time `json:"timestamp"`
-	Payload   string    `json:"payload"`
-	Topic     string    `json:"topic"`
-}
 
 // HistoryHandler is the handler responsible for sending the rooms history to the player
 func HistoryHandler(app *App) func(c echo.Context) error {
@@ -29,11 +20,15 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 		c.Set("route", "History")
 		topic := c.ParamValues()[0]
 		userID := c.QueryParam("userid")
-		from, err := strconv.Atoi(c.QueryParam("from"))
+		from, err := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 		limit, err := strconv.Atoi(c.QueryParam("limit"))
 
 		if limit == 0 {
-			limit = 10
+			limit = app.Defaults.LimitOfMessages
+		}
+
+		if from == 0 {
+			from = time.Now().Unix()
 		}
 
 		authenticated, _, err := authenticate(c.StdContext(), app, userID, topic)
@@ -41,32 +36,19 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			return err
 		}
 
-		logger.Logger.Debugf("user %s is asking for history for topic %s with args from=%d and limit=%d", userID, topic, from, limit)
-		if authenticated {
-			boolQuery := elastic.NewBoolQuery()
-			termQuery := elastic.NewTermQuery("topic", topic)
-			boolQuery.Must(termQuery)
-
-			var searchResults *elastic.SearchResult
-			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(c.StdContext(), app.NumberOfDaysToSearch, boolQuery, from, limit)
-				return err
-			})
-
-			if err != nil {
-				return err
-			}
-			messages := []Message{}
-			var ttyp Message
-			for _, item := range searchResults.Each(reflect.TypeOf(ttyp)) {
-				if t, ok := item.(Message); ok {
-					messages = append(messages, t)
-				}
-			}
-			return c.JSON(http.StatusOK, messages)
+		logger.Logger.Debugf(
+			"user %s is asking for history for topic %s with args from=%d and limit=%d",
+			userID, topic, from, limit)
+		if !authenticated {
+			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
 
-		return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
+		qnt := app.Defaults.BucketQuantityOnSelect
+		messages := app.Cassandra.SelectMessagesInBucket(c.StdContext(),
+			topic,
+			from, qnt, limit)
+
+		return c.JSON(http.StatusOK, messages)
 	}
 }
 
@@ -76,7 +58,7 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 		c.Set("route", "HistorySince")
 		topic := c.ParamValues()[0]
 		userID := c.QueryParam("userid")
-		from, err := strconv.Atoi(c.QueryParam("from"))
+		from, err := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 		limit, err := strconv.Atoi(c.QueryParam("limit"))
 		since, err := strconv.ParseInt(c.QueryParam("since"), 10, 64)
 
@@ -106,59 +88,36 @@ func HistorySinceHandler(app *App) func(c echo.Context) error {
 			limit = defaultLimit
 		}
 
+		if from == 0 {
+			from = time.Now().Unix()
+		}
+
 		logger.Logger.Debugf("user %s is asking for history for topic %s with args from=%d, limit=%d and since=%d", userID, topic, from, limit, since)
 		authenticated, _, err := authenticate(c.StdContext(), app, userID, topic)
 		if err != nil {
 			return err
 		}
 
-		if authenticated {
-			boolQuery := elastic.NewBoolQuery()
-			termQuery := elastic.NewTermQuery("topic", topic)
-			rangeQuery := elastic.NewRangeQuery("timestamp").
-				From(since * 1000).
-				To(nil).
-				IncludeLower(true).
-				IncludeUpper(true)
-			boolQuery.Must(termQuery, rangeQuery)
-
-			var searchResults *elastic.SearchResult
-			err = WithSegment("elasticsearch", c, func() error {
-				searchResults, err = DoESQuery(c.StdContext(), app.NumberOfDaysToSearch, boolQuery, from, limit)
-				return err
-			})
-
-			if err != nil {
-				return err
-			}
-
-			messages := []Message{}
-			var ttyp Message
-			for _, item := range searchResults.Each(reflect.TypeOf(ttyp)) {
-				if t, ok := item.(Message); ok {
-					messages = append(messages, t)
-				}
-			}
-
-			var resStr []byte
-			err = WithSegment("elasticsearch", c, func() error {
-				resStr, err = json.Marshal(messages)
-				return err
-			})
-
-			if err != nil {
-				return err
-			}
+		if !authenticated {
 			logger.Logger.Debugf(
 				"responded to user %s history for topic %s with args from=%d limit=%d and since=%d with code=%d and message=%s",
-				userID, topic, from, limit, since, http.StatusOK, string(resStr),
+				userID, topic, from, limit, since, echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message,
 			)
-			return c.JSON(http.StatusOK, messages)
+			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
+		}
+
+		messages := app.Cassandra.SelectMessagesBeforeTime(c.StdContext(), topic, from, since, limit)
+
+		var resStr []byte
+		resStr, err = json.Marshal(messages)
+		if err != nil {
+			return err
 		}
 		logger.Logger.Debugf(
 			"responded to user %s history for topic %s with args from=%d limit=%d and since=%d with code=%d and message=%s",
-			userID, topic, from, limit, since, echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message,
+			userID, topic, from, limit, since, http.StatusOK, string(resStr),
 		)
-		return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
+
+		return c.JSON(http.StatusOK, messages)
 	}
 }

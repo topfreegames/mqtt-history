@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/topfreegames/mqtt-history/es"
@@ -26,4 +27,13 @@ func DoESQuery(ctx context.Context, numberOfDaysToSearch int, boolQuery *elastic
 	esclient := es.GetESClient()
 	return esclient.Search().Index(getLimitedIndexString(numberOfDaysToSearch)).Query(boolQuery).
 		Sort("timestamp", false).From(from).Size(limit).Do(ctx)
+}
+
+// IsNotFoundError returns true if error is of not found type
+func IsNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), "not found")
 }

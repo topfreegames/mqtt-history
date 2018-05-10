@@ -19,10 +19,11 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type Acl struct {
-	Id       bson.ObjectId "_id,omitempty"
-	Username string        "username"
-	Pubsub   []string      "pubsub"
+// ACL is the acl struct
+type ACL struct {
+	ID       bson.ObjectId `bson:"_id,omitempty"`
+	Username string        `bson:"username"`
+	Pubsub   []string      `bson:"pubsub"`
 }
 
 //GetTX returns new relic transaction
@@ -46,8 +47,9 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 	return f()
 }
 
-func MongoSearch(ctx context.Context, q interface{}) ([]Acl, error) {
-	searchResults := []Acl{}
+// MongoSearch searchs on mongo
+func MongoSearch(ctx context.Context, q interface{}) ([]ACL, error) {
+	searchResults := []ACL{}
 	query := func(c interfaces.Collection) error {
 		fn := c.Find(q).All(&searchResults)
 		return fn
@@ -59,6 +61,7 @@ func MongoSearch(ctx context.Context, q interface{}) ([]Acl, error) {
 	return searchResults, err
 }
 
+// GetTopics get topics
 func GetTopics(ctx context.Context, username string, _topics []string) ([]string, error) {
 	if viper.GetBool("mongo.allow_anonymous") {
 		return _topics, nil
@@ -74,7 +77,7 @@ func GetTopics(ctx context.Context, username string, _topics []string) ([]string
 	return topics, err
 }
 
-func authenticate(ctx context.Context, app *App, userID string, topics ...string) (bool, []interface{}, error) {
+func authenticate(ctx context.Context, app *App, userID string, topics ...string) (bool, []string, error) {
 	for _, topic := range topics {
 		pieces := strings.Split(topic, "/")
 		pieces[len(pieces)-1] = "+"
@@ -89,7 +92,7 @@ func authenticate(ctx context.Context, app *App, userID string, topics ...string
 	for _, topic := range allowedTopics {
 		allowed[topic] = true
 	}
-	authorizedTopics := []interface{}{}
+	authorizedTopics := []string{}
 	for _, topic := range topics {
 		if allowed[topic] {
 			authorizedTopics = append(authorizedTopics, topic)

@@ -12,16 +12,19 @@ import (
 	"os"
 	"strings"
 
+	newrelic "github.com/newrelic/go-agent"
+	extechomiddleware "github.com/topfreegames/extensions/echo/middleware"
+	extnethttpmiddleware "github.com/topfreegames/extensions/middleware"
+
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo/engine"
 	"github.com/labstack/echo/engine/standard"
-	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/echo"
-	extechomiddleware "github.com/topfreegames/extensions/echo/middleware"
 	"github.com/topfreegames/extensions/jaeger"
-	extnethttpmiddleware "github.com/topfreegames/extensions/middleware"
+	"github.com/topfreegames/mqtt-history/cassandra"
 	"github.com/topfreegames/mqtt-history/logger"
+	"github.com/topfreegames/mqtt-history/models"
 	"github.com/uber-go/zap"
 )
 
@@ -37,6 +40,8 @@ type App struct {
 	NewRelic             newrelic.Application
 	NumberOfDaysToSearch int
 	DDStatsD             *extnethttpmiddleware.DogStatsD
+	Cassandra            cassandra.DataStore
+	Defaults             *models.Defaults
 }
 
 // GetApp creates an app given the parameters
@@ -65,8 +70,33 @@ func (app *App) Configure() {
 	app.configureNewRelic()
 	app.configureStatsD()
 	app.configureJaeger()
+	app.configureCassandra()
+	app.configureDefaults()
 
 	app.configureApplication()
+}
+
+func (app *App) configureDefaults() {
+	app.Defaults = &models.Defaults{
+		BucketQuantityOnSelect: app.Config.GetInt("cassandra.bucket.quantity"),
+		LimitOfMessages:        app.Config.GetInt("cassandra.messages.limit"),
+	}
+}
+
+func (app *App) configureCassandra() {
+	logger.Logger.Infof("Connecting to Cassandra")
+	cassandra, err := cassandra.GetCassandra(
+		logger.Logger,
+		app.Config,
+		app.DDStatsD,
+	)
+	if err != nil {
+		logger.Logger.Error("Failed to initialize Cassandra.", zap.Error(err))
+		panic(fmt.Sprintf("Could not initialize Cassandra, err: %s", err))
+	}
+
+	logger.Logger.Info("Initialized Cassandra successfully.")
+	app.Cassandra = cassandra
 }
 
 func (app *App) configureNewRelic() {

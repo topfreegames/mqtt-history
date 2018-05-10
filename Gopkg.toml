@@ -23,6 +23,7 @@
 
 [[constraint]]
   name = "github.com/franela/goblin"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/getsentry/raven-go"
@@ -61,4 +62,4 @@
 
 [[constraint]]
   name = "github.com/topfreegames/extensions"
-  version = "5.10.0"
+  version = "v5.18.1"
