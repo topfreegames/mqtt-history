@@ -29,7 +29,7 @@ create-cassandra-table:
 	@echo 'Done'
 
 run-tests: run-containers
-	@make CASSANDRA_CONTAINER=test_containers_cassandra_1 create-cassandra-table
+	@make CASSANDRA_CONTAINER=mqtthistory_test_cassandra create-cassandra-table
 	@make coverage
 	@make kill-containers
 
