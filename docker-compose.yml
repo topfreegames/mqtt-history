@@ -5,14 +5,6 @@ services:
     image: cassandra:3.11
     ports:
       - 9042:9042
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:5.4.1
-    ports:
-    - "9200:9200"
-    environment:
-    - http.host=0.0.0.0
-    - transport.host=127.0.0.1
-    - xpack.security.enabled=false
   mosquitto:
     image: eclipse-mosquitto:1.4.12
   mqtt-history:
@@ -21,13 +13,12 @@ services:
     environment:
       - MQTTHISTORY_MQTTSERVER_HOST=mosquitto
       - MQTTHISTORY_MQTTSERVER_PORT=1883
-      - MQTTHISTORY_ELASTICSEARCH_HOST=http://elasticsearch:9200
     ports:
       - "8888:80"
       - "8883:443"
     depends_on:
       - mosquitto
-      - elasticsearch
+      - cassandra
   mongo:
     image: mongo:3.0.15-wheezy
     ports:

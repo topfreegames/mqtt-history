@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/topfreegames/mqtt-history.svg?branch=master)](https://travis-ci.org/topfreegames/mqtt-history)
 [![Coverage Status](https://coveralls.io/repos/github/topfreegames/mqtt-history/badge.svg?branch=master)](https://coveralls.io/github/topfreegames/mqtt-history?branch=master)
 
-An MQTT-based history handler for messages recorded by [mqttbot](https://github.com/topfreegames/mqttbot) in elasticsearch
+An MQTT-based history handler for messages recorded by [mqttbot](https://github.com/topfreegames/mqttbot) in Cassandra
 
 
 ## Features
@@ -18,7 +18,7 @@ The bot is capable of:
 
 Make sure you have go installed on your machine.
 
-You also need to have access to running instances of elasticsearch and Redis.
+You also need to have access to running instances of Cassandra and Mongo.
 
 ## Running the application
 
@@ -29,8 +29,8 @@ make setup
 make run
 ```
 
-You may need to change the configurations to point to your MQTT, ElasticSearch
-and Redis servers, or you can use the provided containers, they can be run
+You may need to change the configurations to point to your MQTT, Cassandra
+and Mongo servers, or you can use the provided containers, they can be run
 by executing `make run-containers`
 
 ## Running the tests

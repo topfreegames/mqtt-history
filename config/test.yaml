@@ -2,11 +2,6 @@
 numberOfDaysToSearch: 7
 healthcheck:
   workingText: "WORKING"
-elasticsearch:
-  host: "http://localhost:9123"
-  sniff: false
-  indexMappings:
-    chat: '{ "mappings": { "message":{}}}'
 cassandra:
   hosts: "localhost:9042"
   keyspace: "chat"

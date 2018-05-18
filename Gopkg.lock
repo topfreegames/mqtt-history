@@ -301,11 +301,8 @@
     "dogstatsd",
     "echo",
     "echo/middleware",
-    "elastic",
-    "http",
     "jaeger",
     "jaeger/echo",
-    "jaeger/http",
     "jaeger/mongo",
     "middleware",
     "mongo",
@@ -443,15 +440,6 @@
   revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [[projects]]
-  name = "gopkg.in/olivere/elastic.v5"
-  packages = [
-    ".",
-    "uritemplates"
-  ]
-  revision = "f1fd7305d0b6270192b27010fe1193568b18e4b6"
-  version = "v5.0.39"
-
-[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "e4d366fc3c7938e2958e662b4258c7a89e1f0e3e"
@@ -459,6 +447,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "43d66d8a63f38339bd46c91fee9783cabdc046072c1445be6e191fa9deb1474c"
+  inputs-digest = "c625327a8bfae8853b1e3ad3a17fbb85e5c5c39976df16c6ed592ae9885ce77e"
   solver-name = "gps-cdcl"
   solver-version = 1

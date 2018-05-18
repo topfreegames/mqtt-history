@@ -17,13 +17,9 @@ build:
 
 run-containers:
 	@cd test_containers && docker-compose up -d && cd ..
-	@/bin/bash -c "until docker exec test_containers_elasticsearch_1 curl localhost:9200; do echo 'Waiting for Elasticsearch...' && sleep 1; done"
 
 kill-containers:
 	@cd test_containers && docker-compose stop && cd ..
-
-create-es-index-template:
-	@bash create_es_index_template.sh
 
 CASSANDRA_CONTAINER := mqtt-history_cassandra_1
 create-cassandra-table:
@@ -33,8 +29,6 @@ create-cassandra-table:
 	@echo 'Done'
 
 run-tests: run-containers
-	@/bin/bash -c "until docker exec test_containers_elasticsearch_1 curl localhost:9200; do echo 'Waiting for Elasticsearch...' && sleep 1; done"
-	@make create-es-index-template
 	@make CASSANDRA_CONTAINER=test_containers_cassandra_1 create-cassandra-table
 	@make coverage
 	@make kill-containers
