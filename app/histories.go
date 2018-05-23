@@ -42,11 +42,13 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
 
-		qnt := app.Defaults.BucketQuantityOnSelect
+		bucketQnt := app.Defaults.BucketQuantityOnSelect
+		currentBucket := app.Bucket.Get(from)
 		messages := []*models.Message{}
+
 		for _, topic := range authorizedTopics {
-			newMessages := app.Cassandra.SelectMessagesInBucket(c.StdContext(), topic, from, qnt, limit)
-			messages = append(messages, newMessages...)
+			topicMessages := selectFromBuckets(c.StdContext(), bucketQnt, limit, currentBucket, topic, app.Cassandra)
+			messages = append(messages, topicMessages...)
 		}
 
 		return c.JSON(http.StatusOK, messages)

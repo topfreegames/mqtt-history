@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS chat.messages (
   payload varchar, 
   bucket int, 
   PRIMARY KEY ((topic, bucket), id)
-) WITH CLUSTERING ORDER BY (id ASC);
+) WITH CLUSTERING ORDER BY (id DESC);

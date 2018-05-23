@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/cassandra"
 	"github.com/topfreegames/extensions/middleware"
-	"github.com/topfreegames/mqtt-history/models"
 
 	cassandrainterfaces "github.com/topfreegames/extensions/cassandra/interfaces"
 )
@@ -66,7 +65,6 @@ func (o *BatchObserver) ObserveBatch(ctx context.Context, b gocql.ObservedBatch)
 // Implements DataStore
 type Store struct {
 	DBSession cassandrainterfaces.Session
-	bucket    *models.Bucket
 	logger    *logging.Logger
 }
 
@@ -93,11 +91,8 @@ func GetCassandra(
 
 	logger.Info("successfully connected to cassandra")
 
-	bucket := models.NewBucket(config)
-
 	store := &Store{
 		DBSession: client.Session,
-		bucket:    bucket,
 		logger:    logger,
 	}
 

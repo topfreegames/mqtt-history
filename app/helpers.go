@@ -94,7 +94,7 @@ func authenticate(ctx context.Context, app *App, userID string, topics ...string
 	}
 	authorizedTopics := []string{}
 	for _, topic := range topics {
-		if allowed[topic] {
+		if allowed[topic] && !strings.Contains(topic, "+") {
 			authorizedTopics = append(authorizedTopics, topic)
 		}
 	}

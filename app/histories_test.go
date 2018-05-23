@@ -73,11 +73,12 @@ func TestHistoriesHandler(t *testing.T) {
 					Topic:     topic2,
 				}
 
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
-					testMessage.Timestamp)
+				bucket := a.Bucket.Get(testMessage.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload, bucket)
 				Expect(err).To(BeNil())
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
-					testMessage2.Timestamp)
+
+				bucket = a.Bucket.Get(testMessage2.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload, bucket)
 				Expect(err).To(BeNil())
 
 				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
@@ -122,12 +123,12 @@ func TestHistoriesHandler(t *testing.T) {
 					Topic:     topic2,
 				}
 
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
-					testMessage.Timestamp)
+				bucket := a.Bucket.Get(testMessage.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload, bucket)
 				Expect(err).To(BeNil())
 
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
-					testMessage2.Timestamp)
+				bucket = a.Bucket.Get(testMessage2.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload, bucket)
 				Expect(err).To(BeNil())
 
 				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
@@ -171,12 +172,12 @@ func TestHistoriesHandler(t *testing.T) {
 					Topic:     topic2,
 				}
 
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
-					testMessage.Timestamp)
+				bucket := a.Bucket.Get(testMessage.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload, bucket)
 				Expect(err).To(BeNil())
 
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
-					testMessage2.Timestamp)
+				bucket = a.Bucket.Get(testMessage2.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload, bucket)
 				Expect(err).To(BeNil())
 
 				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
@@ -214,12 +215,12 @@ func TestHistoriesHandler(t *testing.T) {
 					Topic:     topic2,
 				}
 
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload,
-					testMessage.Timestamp)
+				bucket := a.Bucket.Get(testMessage.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage.Topic, testMessage.Payload, bucket)
 				Expect(err).To(BeNil())
 
-				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload,
-					testMessage2.Timestamp)
+				bucket = a.Bucket.Get(testMessage2.Timestamp.Unix())
+				err = a.Cassandra.InsertWithTTL(ctx, testMessage2.Topic, testMessage2.Payload, bucket)
 				Expect(err).To(BeNil())
 
 				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)

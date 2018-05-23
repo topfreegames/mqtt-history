@@ -42,6 +42,7 @@ type App struct {
 	DDStatsD             *extnethttpmiddleware.DogStatsD
 	Cassandra            cassandra.DataStore
 	Defaults             *models.Defaults
+	Bucket               *models.Bucket
 }
 
 // GetApp creates an app given the parameters
@@ -72,8 +73,13 @@ func (app *App) Configure() {
 	app.configureJaeger()
 	app.configureCassandra()
 	app.configureDefaults()
+	app.configureBucket()
 
 	app.configureApplication()
+}
+
+func (app *App) configureBucket() {
+	app.Bucket = models.NewBucket(app.Config)
 }
 
 func (app *App) configureDefaults() {
@@ -187,7 +193,6 @@ func (app *App) configureApplication() {
 
 	// Routes
 	a.Get("/healthcheck", HealthCheckHandler(app))
-	a.Get("/historysince/*", HistorySinceHandler(app))
 	a.Get("/history/*", HistoryHandler(app))
 	a.Get("/histories/*", HistoriesHandler(app))
 	a.Get("/:other", NotFoundHandler(app))

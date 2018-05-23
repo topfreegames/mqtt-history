@@ -11,22 +11,15 @@ import (
 // DataStore is the interface with data access methods
 type DataStore interface {
 	SelectMessagesInBucket(
-		ctx context.Context, topic string,
-		from int64,
-		qnt, limit int,
-	) []*models.Message
-
-	SelectMessagesBeforeTime(
 		ctx context.Context,
 		topic string,
-		from, to int64,
-		limit int,
+		bucket, limit int,
 	) []*models.Message
 
 	InsertWithTTL(
 		ctx context.Context,
 		topic, payload string,
-		now time.Time,
+		bucket int,
 		ttl ...time.Duration,
 	) error
 }
@@ -65,46 +58,24 @@ func (s *Store) exec(ctx context.Context, query string, params ...interface{}) [
 func (s *Store) SelectMessagesInBucket(
 	ctx context.Context,
 	topic string,
-	from int64,
-	qnt, limit int,
+	bucket, limit int,
 ) []*models.Message {
 	query := fmt.Sprintf(`
 	SELECT payload, toTimestamp(id) as timestamp, topic
 	FROM messages 
-	WHERE topic = ? AND bucket IN ?
+	WHERE topic = ? AND bucket = ?
 	LIMIT %d
 	`, limit)
 
-	buckets := s.bucket.GetBuckets(from, qnt)
-
-	return s.exec(ctx, query, topic, buckets)
+	return s.exec(ctx, query, topic, bucket)
 }
 
-// SelectMessagesBeforeTime ...
-func (s *Store) SelectMessagesBeforeTime(
-	ctx context.Context,
-	topic string,
-	from, to int64,
-	limit int,
-) []*models.Message {
-	query := fmt.Sprintf(`
-	SELECT payload, toTimestamp(id) as timestamp, topic
-	FROM messages 
-	WHERE 
-		topic = ? AND bucket IN ? 
-	LIMIT %d
-	`, limit)
-
-	buckets := s.bucket.Range(from, to)
-
-	return s.exec(ctx, query, topic, buckets)
-}
-
-// InsertWithTTL ...
+// InsertWithTTL inserts a message on cassandra.
+// Currently used only on tests.
 func (s *Store) InsertWithTTL(
 	ctx context.Context,
 	topic, payload string,
-	now time.Time,
+	bucket int,
 	ttl ...time.Duration,
 ) error {
 	ttlVar := 1 * time.Minute
@@ -118,7 +89,6 @@ func (s *Store) InsertWithTTL(
 	USING TTL %d
 	`, int(ttlVar.Seconds()))
 
-	timestamp := now.Unix()
-	err := s.DBSession.Query(query, topic, payload, s.bucket.Get(timestamp)).Exec()
+	err := s.DBSession.Query(query, topic, payload, bucket).Exec()
 	return err
 }
