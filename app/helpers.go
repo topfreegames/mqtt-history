@@ -93,10 +93,12 @@ func authenticate(ctx context.Context, app *App, userID string, topics ...string
 		allowed[topic] = true
 	}
 	authorizedTopics := []string{}
+	isAuthorized := false
 	for _, topic := range topics {
+		isAuthorized = isAuthorized || allowed[topic]
 		if allowed[topic] && !strings.Contains(topic, "+") {
 			authorizedTopics = append(authorizedTopics, topic)
 		}
 	}
-	return len(authorizedTopics) > 0, authorizedTopics, nil
+	return isAuthorized, authorizedTopics, nil
 }
