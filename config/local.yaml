@@ -24,3 +24,4 @@ extensions:
     prefix: mqtthistory.
     tags_prefix: ""
     rate: 1
+    enabled: true

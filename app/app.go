@@ -186,7 +186,9 @@ func (app *App) configureApplication() {
 	a.Use(NewSentryMiddleware(app).Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
-	a.Use(extechomiddleware.NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
+	if app.Config.GetBool("extensions.dogstatsd.enabled") {
+		a.Use(extechomiddleware.NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
+	}
 	a.Use(NewNewRelicMiddleware(app, zap.New(
 		zap.NewJSONEncoder(),
 	)).Serve)
