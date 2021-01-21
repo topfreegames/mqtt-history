@@ -9,7 +9,7 @@ setup:
 setup-ci:
 	@go get -u github.com/golang/dep/...
 	@go get github.com/mattn/goveralls
-	@dep ensure
+	@go run github.com/golang/dep ensure
 
 build:
 	@go build $(PACKAGES)
