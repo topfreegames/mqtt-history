@@ -17,6 +17,10 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: '1.8'
+      - name: Set up GOPATH
+        run: |
+          echo "GOPATH=${{ github.workspace }}" >> "$GITHUB_ENV"
+          echo "${{ github.workspace }}/bin" >> "$GITHUB_PATH"
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set-Up CI
