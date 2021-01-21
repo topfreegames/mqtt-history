@@ -23,8 +23,11 @@ jobs:
           echo "${{ github.workspace }}/bin" >> "$GITHUB_PATH"
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          path: src/github.com/topfreegames/mqtt-history
       - name: Set-Up CI
         run: make setup-ci
+        working-directory: src/github.com/topfreegames/mqtt-history
       - name: Run tests
         run: make test
       - name: Send coverage
