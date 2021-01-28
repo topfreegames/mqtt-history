@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine AS build
+FROM golang:1.15-alpine AS build
 
 MAINTAINER TFG Co <backend@tfgco.com>
 
@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o mqtt-
 # Verify if the binary is truly static.
 RUN ldd /src/mqtt-history 2>&1 | grep -q 'Not a valid dynamic program'
 
-FROM alpine
+FROM alpine:3.13
 
 COPY --from=build /src/mqtt-history ./mqtt-history
 COPY --from=build /src/config ./config
