@@ -1,16 +1,23 @@
-FROM golang:1.8.3-alpine
+FROM golang:1.14-alpine AS build
 
 MAINTAINER TFG Co <backend@tfgco.com>
 
-RUN apk add --no-cache git bash
+WORKDIR /src
 
-RUN go get -u github.com/golang/dep/...
+COPY vendor ./vendor
 
-ADD . /go/src/github.com/topfreegames/mqtt-history
+COPY . .
 
-WORKDIR /go/src/github.com/topfreegames/mqtt-history
-RUN dep ensure
-RUN go install github.com/topfreegames/mqtt-history
+# Build a static binary.
+RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o mqtt-history .
+
+# Verify if the binary is truly static.
+RUN ldd /src/mqtt-history 2>&1 | grep -q 'Not a valid dynamic program'
+
+FROM alpine
+
+COPY --from=build /src/mqtt-history ./mqtt-history
+COPY --from=build /src/config ./config
 
 ENV MQTTHISTORY_REDIS_HOST localhost
 ENV MQTTHISTORY_REDIS_PORT 6379

@@ -1,19 +1,11 @@
-PACKAGES= $(shell find . -type f -name "*.go" ! \( -path "*vendor*" \) | sed -En "s/([^\.])\/.*/\1/p" | uniq)
-#PACKAGES = $(shell glide novendor)
-GODIRS = $(shell go list ./... | grep -v /vendor/ | sed s@github.com/topfreegames/mqtt-history@.@g | egrep -v "^[.]$$")
-
-setup:
-	@go get -u github.com/golang/dep/...
-	@dep ensure
-
-setup-ci:
-	@go get -u github.com/golang/dep/...
-	@go get github.com/mattn/goveralls
-	@dep ensure
-
 build:
-	@go build $(PACKAGES)
-	@go build
+	@go build -mod vendor -a -installsuffix cgo -o . .
+
+vendor:
+	@go mod vendor
+
+tidy:
+	@go mod tidy
 
 run-containers:
 	@cd test_containers && docker-compose up -d && cd ..
