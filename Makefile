@@ -28,11 +28,7 @@ run-tests: run-containers
 test: run-tests
 
 coverage:
-	@echo "mode: count" > coverage-all.out
-	@$(foreach pkg,$(PACKAGES),\
-		echo "Testing $(pkg)" &&\
-		go test -coverprofile=coverage.out -covermode=count $(pkg) || exit 1 &&\
-		tail -n +2 coverage.out >> coverage-all.out;)
+	@go test -coverprofile=coverage.out -covermode=count ./...
 
 run:
 	@go run main.go start
