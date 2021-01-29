@@ -50,6 +50,7 @@ require (
 	github.com/uber/jaeger-client-go v2.12.0+incompatible // indirect
 	github.com/uber/jaeger-lib v1.4.0 // indirect
 	github.com/valyala/fasttemplate v0.0.0-20160315193134-3b874956e03f // indirect
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	golang.org/x/oauth2 v0.0.0-20180314180239-fdc9e635145a // indirect
 	google.golang.org/appengine v1.0.0 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
