@@ -24,9 +24,9 @@ jobs:
       - name: Run tests
         run: make test
       - name: Install goveralls
-        run:
-        - go get github.com/mattn/goveralls
-        - go mod vendor
+        run: |
+          go get github.com/mattn/goveralls
+          go mod vendor
       - name: Send coverage
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
