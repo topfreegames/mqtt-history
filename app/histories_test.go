@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/franela/goblin"
+	goblin "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
 	uuid "github.com/satori/go.uuid"
 	"github.com/topfreegames/extensions/mongo/interfaces"
@@ -26,7 +26,7 @@ import (
 )
 
 func TestHistoriesHandler(t *testing.T) {
-	g := Goblin(t)
+	g := goblin.Goblin(t)
 
 	// special hook for gomega
 	RegisterFailHandler(func(m string, _ ...int) { g.Fail(m) })

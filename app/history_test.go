@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/franela/goblin"
+	goblin "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
@@ -31,7 +31,7 @@ func msToTime(ms int64) time.Time {
 }
 
 func TestHistoryHandler(t *testing.T) {
-	g := Goblin(t)
+	g := goblin.Goblin(t)
 
 	// special hook for gomega
 	RegisterFailHandler(func(m string, _ ...int) { g.Fail(m) })

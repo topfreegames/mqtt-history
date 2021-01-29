@@ -25,7 +25,8 @@ You also need to have access to running instances of Cassandra and Mongo.
 If you want to run the application locally you can do so by running
 
 ```
-make setup
+make deps
+make create-cassandra-table
 make run
 ```
 
