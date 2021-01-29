@@ -210,7 +210,8 @@ github.com/uber/jaeger-lib/metrics
 # github.com/valyala/fasttemplate v0.0.0-20160315193134-3b874956e03f
 ## explicit
 github.com/valyala/fasttemplate
-# golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+# golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+## explicit
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
