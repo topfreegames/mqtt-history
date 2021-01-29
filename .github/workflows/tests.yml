@@ -24,10 +24,10 @@ jobs:
       - name: Run tests
         run: make test
       - name: Install goveralls
-        env:
-          GO111MODULE: off
-        run: go get github.com/mattn/goveralls
+        run:
+        - go get github.com/mattn/goveralls
+        - go mod vendor
       - name: Send coverage
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: goveralls -coverprofile coverage.out -service=github
+        run: go run github.com/mattn/goveralls -coverprofile coverage.out -service=github
