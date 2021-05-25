@@ -92,13 +92,13 @@ func IsAuthorized(ctx context.Context, app *App, userID string, topics ...string
 	httpAuthEnabled := app.Config.GetBool("httpAuth.enabled")
 
 	if httpAuthEnabled {
-		return httpAuthenticate(app, userID, topics)
+		return httpAuthorize(app, userID, topics)
 	}
 
-	return mongoAuthenticate(ctx, userID, topics)
+	return mongoAuthorize(ctx, userID, topics)
 }
 
-func httpAuthenticate(app *App, userID string, topics []string) (bool, []string, error) {
+func httpAuthorize(app *App, userID string, topics []string) (bool, []string, error) {
 	timeout := app.Config.GetDuration("httpAuth.timeout") * time.Second
 	address := app.Config.GetString("httpAuth.requestURL")
 
@@ -139,7 +139,7 @@ func httpAuthenticate(app *App, userID string, topics []string) (bool, []string,
 	return isAuthorized, allowedTopics, nil
 }
 
-func mongoAuthenticate(ctx context.Context, userID string, topics []string) (bool, []string, error) {
+func mongoAuthorize(ctx context.Context, userID string, topics []string) (bool, []string, error) {
 	for _, topic := range topics {
 		pieces := strings.Split(topic, "/")
 		pieces[len(pieces)-1] = "+"
