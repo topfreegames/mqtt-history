@@ -19,9 +19,6 @@ FROM alpine:3.13
 COPY --from=build /src/mqtt-history ./mqtt-history
 COPY --from=build /src/config ./config
 
-ENV MQTTHISTORY_REDIS_HOST localhost
-ENV MQTTHISTORY_REDIS_PORT 6379
-ENV MQTTHISTORY_REDIS_DB 0
 ENV MQTTHISTORY_API_TLS false
 ENV MQTTHISTORY_API_CERTFILE ./misc/example.crt
 ENV MQTTHISTORY_API_KEYFILE ./misc/example.key
