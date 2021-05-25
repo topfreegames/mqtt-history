@@ -8,8 +8,12 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
@@ -26,7 +30,12 @@ type ACL struct {
 	Pubsub   []string      `bson:"pubsub"`
 }
 
-//GetTX returns new relic transaction
+type authRequest struct {
+	Username string `json:"username"`
+	Topic    string `json:"topic"`
+}
+
+// GetTX returns new relic transaction
 func GetTX(c echo.Context) newrelic.Transaction {
 	tx := c.Get("txn")
 	if tx == nil {
@@ -36,7 +45,7 @@ func GetTX(c echo.Context) newrelic.Transaction {
 	return tx.(newrelic.Transaction)
 }
 
-//WithSegment adds a segment to new relic transaction
+// WithSegment adds a segment to new relic transaction
 func WithSegment(name string, c echo.Context, f func() error) error {
 	tx := GetTX(c)
 	if tx == nil {
@@ -47,9 +56,9 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 	return f()
 }
 
-// MongoSearch searchs on mongo
+// MongoSearch searches on mongo
 func MongoSearch(ctx context.Context, q interface{}) ([]ACL, error) {
-	searchResults := []ACL{}
+	searchResults := make([]ACL, 0)
 	query := func(c interfaces.Collection) error {
 		fn := c.Find(q).All(&searchResults)
 		return fn
@@ -77,7 +86,60 @@ func GetTopics(ctx context.Context, username string, _topics []string) ([]string
 	return topics, err
 }
 
-func authenticate(ctx context.Context, app *App, userID string, topics ...string) (bool, []string, error) {
+// IsAuthorized returns a boolean indicating whether the user is authorized to read messages
+// from at least one of the given topics, and also a slice of all topics on which the user has authorization.
+func IsAuthorized(ctx context.Context, app *App, userID string, topics ...string) (bool, []string, error) {
+	httpAuthEnabled := app.Config.GetBool("httpAuth.enabled")
+
+	if httpAuthEnabled {
+		return httpAuthenticate(app, userID, topics)
+	}
+
+	return mongoAuthenticate(ctx, userID, topics)
+}
+
+func httpAuthenticate(app *App, userID string, topics []string) (bool, []string, error) {
+	timeout := app.Config.GetDuration("httpAuth.timeout") * time.Second
+	address := app.Config.GetString("httpAuth.requestURL")
+
+	client := http.Client{
+		Timeout: timeout,
+	}
+
+	isAuthorized := false
+	allowedTopics := make([]string, 0)
+	for _, topic := range topics {
+		authRequest := authRequest{
+			Username: userID,
+			Topic:    topic,
+		}
+
+		jsonPayload, _ := json.Marshal(authRequest)
+		request, _ := http.NewRequest(http.MethodPost, address, bytes.NewReader(jsonPayload))
+
+		credentialsNeeded := app.Config.GetBool("httpAuth.iam.enabled")
+		if credentialsNeeded {
+			username := app.Config.GetString("httpAuth.iam.credentials.username")
+			password := app.Config.GetString("httpAuth.iam.credentials.password")
+
+			request.SetBasicAuth(username, password)
+		}
+
+		response, err := client.Do(request)
+		if err != nil {
+			return false, nil, err
+		}
+
+		if response.StatusCode == 200 {
+			isAuthorized = true
+			allowedTopics = append(allowedTopics, topic)
+		}
+	}
+
+	return isAuthorized, allowedTopics, nil
+}
+
+func mongoAuthenticate(ctx context.Context, userID string, topics []string) (bool, []string, error) {
 	for _, topic := range topics {
 		pieces := strings.Split(topic, "/")
 		pieces[len(pieces)-1] = "+"
@@ -92,7 +154,7 @@ func authenticate(ctx context.Context, app *App, userID string, topics ...string
 	for _, topic := range allowedTopics {
 		allowed[topic] = true
 	}
-	authorizedTopics := []string{}
+	authorizedTopics := make([]string, 0)
 	isAuthorized := false
 	for _, topic := range topics {
 		isAuthorized = isAuthorized || allowed[topic]
