@@ -16,6 +16,6 @@ services:
       - PORT=8080
   mongo:
     container_name: mqtthistory_test_mongo
-    image: mongo:3.0.15-wheezy
+    image: mongo:3.6.23
     ports:
       - "27017:27017"
