@@ -5,18 +5,14 @@
 
 An MQTT-based history handler for messages recorded by [mqttbot](https://github.com/topfreegames/mqttbot) in Cassandra
 
-
 ## Features
-
-MqttHistory is an extensible
-
-The bot is capable of:
 - Listen to healthcheck requests
-- Send history messages requested by users
+- Retrieve message history from Cassandra when requested by users
+- Authorization handling with support for MongoDB or an HTTP Authorization API
 
 ## Setup
 
-Make sure you have go installed on your machine.
+Make sure you have Go installed on your machine.
 
 You also need to have access to running instances of Cassandra and Mongo.
 
@@ -42,3 +38,29 @@ If you are interested in running the tests yourself you will need docker (versio
 and up) and docker-compose.
 
 To run the tests simply run `make test`
+
+## Authorization
+
+The project supports checking whether a user is authorized to retrieve the message history for a given topic.
+This can be done via either MongoDB- or HTTP-based authorization, depending on the configuration.
+
+For MongoDB, which is the default method, the required settings are
+```
+mongo:
+  host: "mongodb://localhost:27017"
+  allow_anonymous: false # whether to make authorization checks or not
+  database: "mqtt"
+```
+
+For HTTP auth, the required settings are
+```
+httpAuth:
+  enabled: true # whether to use HTTP or MongoDB for authorization
+  requestURL: "http://localhost:8080/auth" # endpoint to make auth requests
+  timeout: 10 # request timeout in seconds
+  iam:
+    enabled: true # whether to use Basic Auth when accessing the Auth API
+    credentials: # credentials for Basic Auth
+      username: user
+      password: pass
+```

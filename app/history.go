@@ -26,14 +26,14 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			from = time.Now().Unix()
 		}
 
-		authenticated, _, err := authenticate(c.StdContext(), app, userID, topic)
+		authenticated, _, err := IsAuthorized(c.StdContext(), app, userID, topic)
 		if err != nil {
 			return err
 		}
 
 		logger.Logger.Debugf(
-			"user %s is asking for history for topic %s with args from=%d and limit=%d",
-			userID, topic, from, limit)
+			"user %s (authenticated=%v) is asking for history for topic %s with args from=%d and limit=%d",
+			userID, authenticated, topic, from, limit)
 
 		if !authenticated {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
