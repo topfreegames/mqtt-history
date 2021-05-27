@@ -11,6 +11,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -126,6 +128,12 @@ func httpAuthorize(app *App, userID string, topics []string) (bool, []string, er
 		}
 
 		response, err := client.Do(request)
+		// discard response body
+		if response != nil && response.Body != nil {
+			_, _ = io.Copy(ioutil.Discard, response.Body)
+			_ = response.Body.Close()
+		}
+
 		if err != nil {
 			return false, nil, err
 		}
