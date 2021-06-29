@@ -10,43 +10,48 @@ package mongoclient
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
-	"github.com/topfreegames/extensions/mongo"
-	"github.com/topfreegames/extensions/mongo/interfaces"
+	"github.com/topfreegames/mqtt-history/logger"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
-	client *mongo.Client
-	once   sync.Once
+	client   *mongo.Client
+	database string
+	once     sync.Once
 )
 
-//GetMongoSession returns a MongoSession
-func GetMongoSession() (interfaces.MongoDB, error) {
+func mongoSession() (*mongo.Client, error) {
 	var err error
 
 	once.Do(func() {
 		config := viper.GetViper()
+		url := config.GetString("mongo.host")
+		database = config.GetString("mongo.database")
 
-		url := config.Get("mongo.host")
-		config.Set("mongo.url", url)
+		const defaultTimeout = 10
+		ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout*time.Second)
+		defer cancel()
 
-		client, err = mongo.NewClient("mongo", config)
+		logger.Logger.Info("Connecting to MongoDB")
+		client, err = mongo.Connect(ctx, options.Client().ApplyURI(url))
 	})
 
 	if err != nil {
 		return nil, err
 	}
-	return client.MongoDB, nil
+	return client, nil
 }
 
-//GetCollection returns a collection from the database
-func GetCollection(ctx context.Context, collection string, s func(interfaces.Collection) error) error {
-	mongoDB, err := GetMongoSession()
+// GetCollection returns a collection from the database
+func GetCollection(collection string, s func(collection *mongo.Collection) error) error {
+	mongoDB, err := mongoSession()
 	if err != nil {
 		return err
 	}
-	c, session := mongoDB.WithContext(ctx).C(collection)
-	defer session.Close()
+	c := mongoDB.Database(database).Collection(collection)
 	return s(c)
 }

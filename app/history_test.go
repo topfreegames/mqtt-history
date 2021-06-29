@@ -19,11 +19,11 @@ import (
 	. "github.com/onsi/gomega"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
-	"github.com/topfreegames/extensions/mongo/interfaces"
 	. "github.com/topfreegames/mqtt-history/app"
 	"github.com/topfreegames/mqtt-history/models"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func msToTime(ms int64) time.Time {
@@ -64,12 +64,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
-					return fn
+				query := func(c *mongo.Collection) error {
+					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
+					return err
 				}
 
-				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
+				err := mongoclient.GetCollection("mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -100,12 +100,12 @@ func TestHistoryHandler(t *testing.T) {
 				var topics []string
 				topics = append(topics, topic)
 
-				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
-					return fn
+				query := func(c *mongo.Collection) error {
+					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
+					return err
 				}
 
-				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
+				err := mongoclient.GetCollection("mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
@@ -126,12 +126,12 @@ func TestHistoryHandler(t *testing.T) {
 				topics = append(topics, topic)
 				topics = append(topics, "chat/+")
 
-				query := func(c interfaces.Collection) error {
-					fn := c.Insert(&ACL{Username: "test:test", Pubsub: topics})
-					return fn
+				query := func(c *mongo.Collection) error {
+					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
+					return err
 				}
 
-				err := mongoclient.GetCollection(ctx, "mqtt_acl", query)
+				err := mongoclient.GetCollection("mqtt_acl", query)
 
 				Expect(err).To(BeNil())
 
