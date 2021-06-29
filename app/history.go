@@ -16,7 +16,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 		topic := c.ParamValues()[0]
 		userID := c.QueryParam("userid")
 		from, err := strconv.ParseInt(c.QueryParam("from"), 10, 64)
-		limit, err := strconv.Atoi(c.QueryParam("limit"))
+		limit, err := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
 
 		if limit == 0 {
 			limit = app.Defaults.LimitOfMessages
@@ -39,11 +39,18 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
 
+		if app.Defaults.MongoEnabled {
+			collection := app.Defaults.MongoMessagesCollection
+			messages := SelectFromCollection(c, topic, from, limit, collection)
+
+			return c.JSON(http.StatusOK, messages)
+		}
+
 		bucketQnt := app.Defaults.BucketQuantityOnSelect
 		currentBucket := app.Bucket.Get(from)
 
 		messages := selectFromBuckets(c.StdContext(),
-			bucketQnt, limit, currentBucket,
+			bucketQnt, int(limit), currentBucket,
 			topic,
 			app.Cassandra)
 

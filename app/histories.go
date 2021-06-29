@@ -20,7 +20,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		topicsSuffix := strings.Split(c.QueryParam("topics"), ",")
 		topics := make([]string, len(topicsSuffix))
 		from, err := strconv.ParseInt(c.QueryParam("from"), 10, 64)
-		limit, err := strconv.Atoi(c.QueryParam("limit"))
+		limit, err := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
 		for i, topicSuffix := range topicsSuffix {
 			topics[i] = topicPrefix + "/" + topicSuffix
 		}
@@ -42,12 +42,23 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
 
+		// retrieve messages
+		messages := make([]*models.Message, 0)
+		if app.Defaults.MongoEnabled {
+			collection := app.Defaults.MongoMessagesCollection
+
+			for _, topic := range authorizedTopics {
+				topicMessages := SelectFromCollection(c, topic, from, limit, collection)
+				messages = append(messages, topicMessages...)
+			}
+			return c.JSON(http.StatusOK, messages)
+		}
+
 		bucketQnt := app.Defaults.BucketQuantityOnSelect
 		currentBucket := app.Bucket.Get(from)
-		messages := []*models.Message{}
 
 		for _, topic := range authorizedTopics {
-			topicMessages := selectFromBuckets(c.StdContext(), bucketQnt, limit, currentBucket, topic, app.Cassandra)
+			topicMessages := selectFromBuckets(c.StdContext(), bucketQnt, int(limit), currentBucket, topic, app.Cassandra)
 			messages = append(messages, topicMessages...)
 		}
 

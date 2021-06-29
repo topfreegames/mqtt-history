@@ -36,7 +36,7 @@ func mongoSession() (*mongo.Client, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout*time.Second)
 		defer cancel()
 
-		logger.Logger.Info("Connecting to MongoDB")
+		logger.Logger.Infof("Connecting to MongoDB at '%s'", url)
 		client, err = mongo.Connect(ctx, options.Client().ApplyURI(url))
 	})
 

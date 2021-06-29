@@ -53,7 +53,7 @@ func GetApp(host string, port int, debug bool, configPath string) *App {
 	app := &App{
 		Host:       host,
 		Port:       port,
-		Config:     viper.New(),
+		Config:     viper.GetViper(),
 		ConfigPath: configPath,
 		Debug:      debug,
 	}
@@ -83,7 +83,6 @@ func (app *App) configureBucket() {
 func (app *App) configureStorage() {
 	if app.Defaults.MongoEnabled {
 		app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
-		app.Defaults.MongoMessagesCollection = app.Config.GetString("mongo.messages.collection")
 		return
 	}
 
@@ -93,9 +92,10 @@ func (app *App) configureStorage() {
 
 func (app *App) configureDefaults() {
 	app.Defaults = &models.Defaults{
-		BucketQuantityOnSelect: app.Config.GetInt("cassandra.bucket.quantity"),
-		LimitOfMessages:        app.Config.GetInt64("cassandra.messages.limit"),
-		MongoEnabled:           app.Config.GetBool("mongo.messages.enabled"),
+		BucketQuantityOnSelect:  app.Config.GetInt("cassandra.bucket.quantity"),
+		LimitOfMessages:         app.Config.GetInt64("cassandra.messages.limit"),
+		MongoEnabled:            app.Config.GetBool("mongo.messages.enabled"),
+		MongoMessagesCollection: app.Config.GetString("mongo.messages.collection"),
 	}
 }
 
