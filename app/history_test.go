@@ -40,6 +40,10 @@ func TestHistoryHandler(t *testing.T) {
 		ctx := context.Background()
 		a := GetDefaultTestApp()
 
+		g.AfterEach(func() {
+			a.Defaults.MongoEnabled = false
+		})
+
 		g.Describe("History Handler", func() {
 			g.It("It should return 401 if the user is not authorized into the topic", func() {
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
@@ -91,6 +95,49 @@ func TestHistoryHandler(t *testing.T) {
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 
+			})
+
+			g.It("It should return 200 if the user is authorized and mongo is used as message store", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+
+				var topics []string
+				topics = append(topics, topic)
+
+				insertAuthCallback := func(c *mongo.Collection) error {
+					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
+					return err
+				}
+
+				err := mongoclient.GetCollection("mqtt_acl", insertAuthCallback)
+
+				Expect(err).To(BeNil())
+
+				testMessage := models.Message{
+					Timestamp: time.Now().Add(-1 * time.Second),
+					Payload:   "{\"test1\":\"test2\"}",
+					Topic:     topic,
+				}
+
+				insertMessageCallback := func(c *mongo.Collection) error {
+					_, err := c.InsertOne(ctx, testMessage)
+					return err
+				}
+
+				messagesCollection := a.Config.GetString("mongo.messages.collection")
+				err = mongoclient.GetCollection(messagesCollection, insertMessageCallback)
+				Expect(err).To(BeNil())
+
+				// enable mongo as message store
+				a.Defaults.MongoEnabled = true
+
+				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []models.Message
+				err = json.Unmarshal([]byte(body), &messages)
+				Expect(err).To(BeNil())
 			})
 
 			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {
