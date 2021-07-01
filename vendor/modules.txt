@@ -1,8 +1,6 @@
 # cloud.google.com/go v0.20.0
 ## explicit
 cloud.google.com/go/compute/metadata
-# github.com/BurntSushi/toml v0.3.1
-## explicit
 # github.com/DataDog/datadog-go v0.0.0-20170427165718-0ddda6bee211
 ## explicit
 github.com/DataDog/datadog-go/statsd
@@ -12,11 +10,27 @@ github.com/apache/thrift/lib/go/thrift
 # github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f
 ## explicit
 github.com/asaskevich/govalidator
+# github.com/aws/aws-sdk-go v1.34.28
+github.com/aws/aws-sdk-go/aws
+github.com/aws/aws-sdk-go/aws/awserr
+github.com/aws/aws-sdk-go/aws/awsutil
+github.com/aws/aws-sdk-go/aws/client/metadata
+github.com/aws/aws-sdk-go/aws/credentials
+github.com/aws/aws-sdk-go/aws/endpoints
+github.com/aws/aws-sdk-go/aws/request
+github.com/aws/aws-sdk-go/aws/signer/v4
+github.com/aws/aws-sdk-go/internal/context
+github.com/aws/aws-sdk-go/internal/ini
+github.com/aws/aws-sdk-go/internal/sdkio
+github.com/aws/aws-sdk-go/internal/sdkmath
+github.com/aws/aws-sdk-go/internal/shareddefaults
+github.com/aws/aws-sdk-go/internal/strings
+github.com/aws/aws-sdk-go/internal/sync/singleflight
+github.com/aws/aws-sdk-go/private/protocol
+github.com/aws/aws-sdk-go/private/protocol/rest
 # github.com/codahale/hdrhistogram v0.9.0
 ## explicit
 github.com/codahale/hdrhistogram
-# github.com/davecgh/go-spew v1.1.1
-## explicit
 # github.com/franela/goblin v0.0.0-20180407132755-cd5d08fb4ede
 ## explicit
 github.com/franela/goblin
@@ -33,6 +47,8 @@ github.com/go-pg/pg/internal/parser
 github.com/go-pg/pg/internal/pool
 github.com/go-pg/pg/orm
 github.com/go-pg/pg/types
+# github.com/go-stack/stack v1.8.0
+github.com/go-stack/stack
 # github.com/gocql/gocql v0.0.0-20210128155005-14aa133462a3
 ## explicit
 github.com/gocql/gocql
@@ -41,10 +57,9 @@ github.com/gocql/gocql/internal/murmur
 github.com/gocql/gocql/internal/streams
 # github.com/golang/mock v1.0.0
 ## explicit
-github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.4.2
 github.com/golang/protobuf/proto
-# github.com/golang/snappy v0.0.0-20170215233205-553a64147049
+# github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/gorilla/context v0.0.0-20160226214623-1ea25387ff6f
 ## explicit
@@ -67,11 +82,20 @@ github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
 # github.com/inconshreveable/mousetrap v1.0.0
-## explicit
 github.com/inconshreveable/mousetrap
 # github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a
 ## explicit
 github.com/jinzhu/inflection
+# github.com/jmespath/go-jmespath v0.4.0
+github.com/jmespath/go-jmespath
+# github.com/klauspost/compress v1.9.5
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/snappy
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/konsorten/go-windows-terminal-sequences v1.0.2
+github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/fs v0.0.0-20131111012553-2788f0dbd169
 ## explicit
 github.com/kr/fs
@@ -130,11 +154,9 @@ github.com/op/go-logging
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/ext
 github.com/opentracing/opentracing-go/log
-# github.com/pelletier/go-toml v1.1.0
-## explicit
+# github.com/pelletier/go-toml v1.7.0
 github.com/pelletier/go-toml
-# github.com/pkg/errors v0.7.1
-## explicit
+# github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pkg/sftp v0.0.0-20160721231453-a71e8f580e3b
 ## explicit
@@ -142,8 +164,7 @@ github.com/pkg/sftp
 # github.com/satori/go.uuid v1.1.1-0.20160713180306-0aa62d5ddceb
 ## explicit
 github.com/satori/go.uuid
-# github.com/sirupsen/logrus v1.0.5
-## explicit
+# github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/spf13/afero v0.0.0-20160821083612-20500e2abd0d
 ## explicit
@@ -153,14 +174,13 @@ github.com/spf13/afero/sftp
 # github.com/spf13/cast v0.0.0-20160730092037-e31f36ffc91a
 ## explicit
 github.com/spf13/cast
-# github.com/spf13/cobra v0.0.0-20160823215150-37c3f8060359
+# github.com/spf13/cobra v0.0.3
 ## explicit
 github.com/spf13/cobra
 # github.com/spf13/jwalterweatherman v0.0.0-20160311093646-33c24e77fb80
 ## explicit
 github.com/spf13/jwalterweatherman
-# github.com/spf13/pflag v0.0.0-20160820154156-103ce5cd2042
-## explicit
+# github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
 # github.com/spf13/viper v1.0.2
 ## explicit
@@ -176,10 +196,7 @@ github.com/topfreegames/extensions/echo
 github.com/topfreegames/extensions/echo/middleware
 github.com/topfreegames/extensions/jaeger
 github.com/topfreegames/extensions/jaeger/echo
-github.com/topfreegames/extensions/jaeger/mongo
 github.com/topfreegames/extensions/middleware
-github.com/topfreegames/extensions/mongo
-github.com/topfreegames/extensions/mongo/interfaces
 github.com/topfreegames/extensions/oauth2
 github.com/topfreegames/extensions/pg/interfaces
 # github.com/uber-go/atomic v1.0.0
@@ -210,16 +227,60 @@ github.com/uber/jaeger-lib/metrics
 # github.com/valyala/fasttemplate v0.0.0-20160315193134-3b874956e03f
 ## explicit
 github.com/valyala/fasttemplate
-# golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+# github.com/xdg-go/pbkdf2 v1.0.0
+github.com/xdg-go/pbkdf2
+# github.com/xdg-go/scram v1.0.2
+github.com/xdg-go/scram
+# github.com/xdg-go/stringprep v1.0.2
+github.com/xdg-go/stringprep
+# github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
+github.com/youmark/pkcs8
+# go.mongodb.org/mongo-driver v1.5.3
 ## explicit
+go.mongodb.org/mongo-driver/bson
+go.mongodb.org/mongo-driver/bson/bsoncodec
+go.mongodb.org/mongo-driver/bson/bsonoptions
+go.mongodb.org/mongo-driver/bson/bsonrw
+go.mongodb.org/mongo-driver/bson/bsontype
+go.mongodb.org/mongo-driver/bson/primitive
+go.mongodb.org/mongo-driver/event
+go.mongodb.org/mongo-driver/internal
+go.mongodb.org/mongo-driver/mongo
+go.mongodb.org/mongo-driver/mongo/address
+go.mongodb.org/mongo-driver/mongo/description
+go.mongodb.org/mongo-driver/mongo/options
+go.mongodb.org/mongo-driver/mongo/readconcern
+go.mongodb.org/mongo-driver/mongo/readpref
+go.mongodb.org/mongo-driver/mongo/writeconcern
+go.mongodb.org/mongo-driver/tag
+go.mongodb.org/mongo-driver/version
+go.mongodb.org/mongo-driver/x/bsonx
+go.mongodb.org/mongo-driver/x/bsonx/bsoncore
+go.mongodb.org/mongo-driver/x/mongo/driver
+go.mongodb.org/mongo-driver/x/mongo/driver/auth
+go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi
+go.mongodb.org/mongo-driver/x/mongo/driver/connstring
+go.mongodb.org/mongo-driver/x/mongo/driver/dns
+go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt
+go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options
+go.mongodb.org/mongo-driver/x/mongo/driver/ocsp
+go.mongodb.org/mongo-driver/x/mongo/driver/operation
+go.mongodb.org/mongo-driver/x/mongo/driver/session
+go.mongodb.org/mongo-driver/x/mongo/driver/topology
+go.mongodb.org/mongo-driver/x/mongo/driver/uuid
+go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
+# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+golang.org/x/crypto/blowfish
+golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
+golang.org/x/crypto/ocsp
+golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
-golang.org/x/crypto/ssh/terminal
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 # golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -233,12 +294,14 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
+# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+golang.org/x/sync/errgroup
+golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
-golang.org/x/sys/windows
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.5
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -300,20 +363,9 @@ google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
-# gopkg.in/airbrake/gobrake.v2 v2.0.9
-## explicit
 # gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-## explicit
-# gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2
 ## explicit
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
-# gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
-## explicit
-gopkg.in/mgo.v2
-gopkg.in/mgo.v2/bson
-gopkg.in/mgo.v2/internal/json
-gopkg.in/mgo.v2/internal/sasl
-gopkg.in/mgo.v2/internal/scram
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2

@@ -13,6 +13,10 @@ mongo:
   host: "mongodb://localhost:27017"
   allow_anonymous: false
   database: "mqtt"
+  messages:
+    enabled: false
+    limit: 10
+    collection: "messages"
 logger:
   level: "debug"
 jaeger:

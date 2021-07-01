@@ -5,6 +5,15 @@
 
 An MQTT-based history handler for messages recorded by [mqttbot](https://github.com/topfreegames/mqttbot) in Cassandra
 
+There's also support for messages stored in MongoDB, assuming the message documents contain these **required** fields:
+```
+{
+    "topic": "<mqtt history target topic name>",
+    "original_payload": "<message payload>",
+    "timestamp": <int64 seconds from Unix epoch>
+}
+```
+
 ## Features
 - Listen to healthcheck requests
 - Retrieve message history from Cassandra when requested by users

@@ -53,7 +53,7 @@ func GetApp(host string, port int, debug bool, configPath string) *App {
 	app := &App{
 		Host:       host,
 		Port:       port,
-		Config:     viper.New(),
+		Config:     viper.GetViper(),
 		ConfigPath: configPath,
 		Debug:      debug,
 	}
@@ -65,16 +65,14 @@ func GetApp(host string, port int, debug bool, configPath string) *App {
 func (app *App) Configure() {
 	app.setConfigurationDefaults()
 	app.loadConfiguration()
+	app.configureDefaults()
 
 	app.configureSentry()
-
 	app.configureNewRelic()
 	app.configureStatsD()
 	app.configureJaeger()
-	app.configureCassandra()
-	app.configureDefaults()
-	app.configureBucket()
 
+	app.configureStorage()
 	app.configureApplication()
 }
 
@@ -82,10 +80,22 @@ func (app *App) configureBucket() {
 	app.Bucket = models.NewBucket(app.Config)
 }
 
+func (app *App) configureStorage() {
+	if app.Defaults.MongoEnabled {
+		app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
+		return
+	}
+
+	app.configureBucket()
+	app.configureCassandra()
+}
+
 func (app *App) configureDefaults() {
 	app.Defaults = &models.Defaults{
-		BucketQuantityOnSelect: app.Config.GetInt("cassandra.bucket.quantity"),
-		LimitOfMessages:        app.Config.GetInt("cassandra.messages.limit"),
+		BucketQuantityOnSelect:  app.Config.GetInt("cassandra.bucket.quantity"),
+		LimitOfMessages:         app.Config.GetInt64("cassandra.messages.limit"),
+		MongoEnabled:            app.Config.GetBool("mongo.messages.enabled"),
+		MongoMessagesCollection: app.Config.GetString("mongo.messages.collection"),
 	}
 }
 
@@ -200,7 +210,7 @@ func (app *App) configureApplication() {
 	a.Get("/:other", NotFoundHandler(app))
 }
 
-//OnErrorHandler handles application panics
+// OnErrorHandler handles application panics
 func (app *App) OnErrorHandler(err interface{}, stack []byte) {
 	logger.Logger.Error(err)
 

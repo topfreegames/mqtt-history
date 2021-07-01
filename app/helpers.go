@@ -20,16 +20,18 @@ import (
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/spf13/viper"
-	"github.com/topfreegames/extensions/mongo/interfaces"
 	"github.com/topfreegames/mqtt-history/mongoclient"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ACL is the acl struct
 type ACL struct {
-	ID       bson.ObjectId `bson:"_id,omitempty"`
-	Username string        `bson:"username"`
-	Pubsub   []string      `bson:"pubsub"`
+	ID       primitive.ObjectID `bson:"_id,omitempty"`
+	Username string             `bson:"username"`
+	Pubsub   []string           `bson:"pubsub"`
 }
 
 type authRequest struct {
@@ -58,15 +60,29 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 	return f()
 }
 
-// MongoSearch searches on mongo
-func MongoSearch(ctx context.Context, q interface{}) ([]ACL, error) {
+func findAuthorizedTopics(ctx context.Context, username string, topics []string) ([]ACL, error) {
 	searchResults := make([]ACL, 0)
-	query := func(c interfaces.Collection) error {
-		fn := c.Find(q).All(&searchResults)
-		return fn
+	query := func(c *mongo.Collection) error {
+		opts := options.Find()
+
+		defaultACLSort := bson.D{
+			{"username", 1},
+			{"pubsub", 1},
+		}
+
+		// add sort to match index
+		opts.SetSort(defaultACLSort)
+
+		query := bson.M{"username": username, "pubsub": bson.M{"$in": topics}}
+		cursor, err := c.Find(ctx, query)
+		if err != nil {
+			return err
+		}
+
+		return cursor.All(ctx, &searchResults)
 	}
 	search := func() error {
-		return mongoclient.GetCollection(ctx, "mqtt_acl", query)
+		return mongoclient.GetCollection("mqtt_acl", query)
 	}
 	err := search()
 	return searchResults, err
@@ -78,11 +94,11 @@ func GetTopics(ctx context.Context, username string, _topics []string) ([]string
 		return _topics, nil
 	}
 	var topics []string
-	searchResults, err := MongoSearch(ctx, bson.M{"username": username, "pubsub": bson.M{"$in": _topics}})
+	authorizedTopics, err := findAuthorizedTopics(ctx, username, _topics)
 	if err != nil {
 		return nil, err
 	}
-	for _, elem := range searchResults {
+	for _, elem := range authorizedTopics {
 		topics = append(topics, elem.Pubsub[0])
 	}
 	return topics, err
