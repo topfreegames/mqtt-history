@@ -23,6 +23,7 @@ import (
 	"github.com/topfreegames/mqtt-history/models"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -113,9 +114,13 @@ func TestHistoryHandler(t *testing.T) {
 
 				Expect(err).To(BeNil())
 
-				testMessage := models.Message{
-					Timestamp: time.Now().Add(-1 * time.Second),
-					Payload:   "{\"test1\":\"test2\"}",
+				testMessage := models.MongoMessage{
+					Timestamp: time.Now().Add(-1 * time.Second).Unix(),
+					Payload:   bson.M{
+						"original_payload": bson.M{
+							"test1": "test2",
+						},
+					},
 					Topic:     topic,
 				}
 
@@ -138,6 +143,9 @@ func TestHistoryHandler(t *testing.T) {
 				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
+
+				g.Assert(len(messages)).Equal(1)
+				g.Assert(messages[0].Payload).Equal("{\"original_payload\":{\"test1\":\"test2\"}}")
 			})
 
 			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {

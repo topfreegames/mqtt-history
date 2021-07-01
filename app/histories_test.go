@@ -22,6 +22,7 @@ import (
 	"github.com/topfreegames/mqtt-history/models"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -117,16 +118,24 @@ func TestHistoriesHandler(t *testing.T) {
 				err := mongoclient.GetCollection("mqtt_acl", insertAuthCallback)
 				Expect(err).To(BeNil())
 
-				testMessage := models.Message{
-					Timestamp: time.Now().AddDate(0, 0, -1),
-					Payload:   "{\"test1\":\"test2\"}",
+				testMessage := models.MongoMessage{
+					Timestamp: time.Now().AddDate(0, 0, -1).Unix(),
+					Payload:   bson.M{
+						"original_payload": bson.M{
+							"test1": "test2",
+						},
+					},
 					Topic:     topic,
 				}
 
-				testMessage2 := models.Message{
+				testMessage2 := models.MongoMessage{
 					// ensure the message was received 1 second before so that the mongo query can pick up this message
-					Timestamp: time.Now().Add(-1 * time.Second),
-					Payload:   "{\"test3\":\"test4\"}",
+					Timestamp: time.Now().Add(-1 * time.Second).Unix(),
+					Payload:   bson.M{
+						"original_payload": bson.M{
+							"test3": "test4",
+						},
+					},
 					Topic:     topic2,
 				}
 
@@ -153,8 +162,8 @@ func TestHistoriesHandler(t *testing.T) {
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 				g.Assert(len(messages)).Equal(2)
-				g.Assert(messages[0].Payload).Equal("{\"test1\":\"test2\"}")
-				g.Assert(messages[1].Payload).Equal("{\"test3\":\"test4\"}")
+				g.Assert(messages[0].Payload).Equal("{\"original_payload\":{\"test1\":\"test2\"}}")
+				g.Assert(messages[1].Payload).Equal("{\"original_payload\":{\"test3\":\"test4\"}}")
 			})
 
 			g.It("It should return 200 if the user is authorized into at least one topic", func() {
