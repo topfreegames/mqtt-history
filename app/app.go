@@ -207,6 +207,8 @@ func (app *App) configureApplication() {
 	a.Get("/healthcheck", HealthCheckHandler(app))
 	a.Get("/history/*", HistoryHandler(app))
 	a.Get("/histories/*", HistoriesHandler(app))
+	a.Get("/v2/history/*", HistoryV2Handler(app))
+	a.Get("/v2/histories/*", HistoriesV2Handler(app))
 	a.Get("/:other", NotFoundHandler(app))
 }
 
