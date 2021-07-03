@@ -27,10 +27,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func msToTime(ms int64) time.Time {
-	return time.Unix(0, ms*int64(time.Millisecond))
-}
-
 func TestHistoryHandler(t *testing.T) {
 	g := goblin.Goblin(t)
 
@@ -114,14 +110,14 @@ func TestHistoryHandler(t *testing.T) {
 
 				Expect(err).To(BeNil())
 
-				testMessage := models.MongoMessage{
+				testMessage := models.MessageV2{
 					Timestamp: time.Now().Add(-1 * time.Second).Unix(),
-					Payload:   bson.M{
+					Payload: bson.M{
 						"original_payload": bson.M{
 							"test1": "test2",
 						},
 					},
-					Topic:     topic,
+					Topic: topic,
 				}
 
 				insertMessageCallback := func(c *mongo.Collection) error {
@@ -143,6 +139,9 @@ func TestHistoryHandler(t *testing.T) {
 				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
+				print("messages")
+
+				print(messages)
 
 				g.Assert(len(messages)).Equal(1)
 				g.Assert(messages[0].Payload).Equal("{\"original_payload\":{\"test1\":\"test2\"}}")

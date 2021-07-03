@@ -2,8 +2,8 @@ package app
 
 import (
 	"net/http"
-	"strconv"
-	"time"
+
+	"github.com/topfreegames/mqtt-history/mongoclient"
 
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/logger"
@@ -14,17 +14,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "History")
 		topic := c.ParamValues()[0]
-		userID := c.QueryParam("userid")
-		from, err := strconv.ParseInt(c.QueryParam("from"), 10, 64)
-		limit, err := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
-
-		if limit == 0 {
-			limit = app.Defaults.LimitOfMessages
-		}
-
-		if from == 0 {
-			from = time.Now().Unix()
-		}
+		userID, from, limit := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
 
 		authenticated, _, err := IsAuthorized(c.StdContext(), app, userID, topic)
 		if err != nil {
@@ -41,8 +31,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 
 		if app.Defaults.MongoEnabled {
 			collection := app.Defaults.MongoMessagesCollection
-			messages := SelectFromCollection(c, topic, from, limit, collection)
-
+			messages := mongoclient.GetMessages(c, topic, from, limit, collection)
 			return c.JSON(http.StatusOK, messages)
 		}
 

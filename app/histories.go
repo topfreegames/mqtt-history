@@ -2,9 +2,8 @@ package app
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
-	"time"
+
+	"github.com/topfreegames/mqtt-history/mongoclient"
 
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/logger"
@@ -16,20 +15,11 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "Histories")
 		topicPrefix := c.ParamValues()[0]
-		userID := c.QueryParam("userid")
-		topicsSuffix := strings.Split(c.QueryParam("topics"), ",")
+		topicsSuffix, userID, from, limit := ParseHistoriesQueryParams(c, app.Defaults.LimitOfMessages)
 		topics := make([]string, len(topicsSuffix))
-		from, err := strconv.ParseInt(c.QueryParam("from"), 10, 64)
-		limit, err := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
+
 		for i, topicSuffix := range topicsSuffix {
 			topics[i] = topicPrefix + "/" + topicSuffix
-		}
-		if limit == 0 {
-			limit = app.Defaults.LimitOfMessages
-		}
-
-		if from == 0 {
-			from = time.Now().Unix()
 		}
 
 		logger.Logger.Debugf("user %s is asking for histories for topicPrefix %s with args topics=%s from=%d and limit=%d", userID, topicPrefix, topics, from, limit)
@@ -48,7 +38,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			collection := app.Defaults.MongoMessagesCollection
 
 			for _, topic := range authorizedTopics {
-				topicMessages := SelectFromCollection(c, topic, from, limit, collection)
+				topicMessages := mongoclient.GetMessages(c, topic, from, limit, collection)
 				messages = append(messages, topicMessages...)
 			}
 			return c.JSON(http.StatusOK, messages)
@@ -65,4 +55,3 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		return c.JSON(http.StatusOK, messages)
 	}
 }
-

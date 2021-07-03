@@ -118,25 +118,25 @@ func TestHistoriesHandler(t *testing.T) {
 				err := mongoclient.GetCollection("mqtt_acl", insertAuthCallback)
 				Expect(err).To(BeNil())
 
-				testMessage := models.MongoMessage{
+				testMessage := models.MessageV2{
 					Timestamp: time.Now().AddDate(0, 0, -1).Unix(),
-					Payload:   bson.M{
+					Payload: bson.M{
 						"original_payload": bson.M{
 							"test1": "test2",
 						},
 					},
-					Topic:     topic,
+					Topic: topic,
 				}
 
-				testMessage2 := models.MongoMessage{
+				testMessage2 := models.MessageV2{
 					// ensure the message was received 1 second before so that the mongo query can pick up this message
 					Timestamp: time.Now().Add(-1 * time.Second).Unix(),
-					Payload:   bson.M{
+					Payload: bson.M{
 						"original_payload": bson.M{
 							"test3": "test4",
 						},
 					},
-					Topic:     topic2,
+					Topic: topic2,
 				}
 
 				// and given that the user has 2 messages stored in mongo
