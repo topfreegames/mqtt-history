@@ -14,6 +14,21 @@ There's also support for messages stored in MongoDB, assuming the message docume
 }
 ```
 
+V2 returns the messages from Mongo in the following format:
+```
+{
+    "topic": "<mqtt history target topic name>",
+    "original_payload": "<message payload>",
+    "timestamp": <int64 seconds from Unix epoch>,
+    "game_id" : "",
+    "player_id": "",
+    "blocked" bool,
+    "should_moderate": bool, 
+    "metadata" : {}, 
+    "id": ""
+}
+```
+
 ## Features
 - Listen to healthcheck requests
 - Retrieve message history from Cassandra when requested by users
@@ -41,7 +56,7 @@ by executing `make run-containers`
 
 ## Running the tests
 
-The project is integrated with Travis CI and uses docker to run the needed services.
+The project is integrated with Github Actions and uses docker to run the needed services.
 
 If you are interested in running the tests yourself you will need docker (version 1.10
 and up) and docker-compose.

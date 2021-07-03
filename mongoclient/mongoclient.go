@@ -60,9 +60,8 @@ func GetCollection(collection string, s func(collection *mongo.Collection) error
 	return s(c)
 }
 
-// GetMessagesV2 expects the message to be stored in mongo with a specific structure,
-// the main difference being that the payload field is now referred to as "original_payload" and
-// is a JSON object, not a string, and also the timestamp is int64 seconds since Unix epoch, not an ISODate on Mongo
+// GetMessagesV2 returns messages stored in MongoDB by topic
+// It returns the MessageV2 model that is stored in MongoDB
 func GetMessagesV2(ctx context.Context, topic string, from int64, limit int64, collection string) []*models.MessageV2 {
 	searchResults := make([]*models.MessageV2, 0)
 
@@ -99,6 +98,11 @@ func GetMessagesV2(ctx context.Context, topic string, from int64, limit int64, c
 	return searchResults
 }
 
+// GetMessages returns messages stored in MongoDB by topic
+// since MongoDB uses the MessageV2 format, this method converts
+// the MessageV2 model into the Message one for retrocompatibility
+// Rhe main difference being that the payload field is now referred to as "original_payload" and
+// is a JSON object, not a string, and also the timestamp is int64 seconds since Unix epoch, not an ISODate
 func GetMessages(ctx context.Context, topic string, from int64, limit int64, collection string) []*models.Message {
 	searchResults := GetMessagesV2(ctx, topic, from, limit, collection)
 	messages := make([]*models.Message, 0)

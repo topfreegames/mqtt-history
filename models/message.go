@@ -13,7 +13,10 @@ type Message struct {
 	Topic     string    `json:"topic" bson:"topic"`
 }
 
-// MessageV2 represents a chat message stored in Mongo.
+// MessageV2 represents new payload for the chat message
+// This payload is stored in MongoDB
+// v2 endpoints return this format,
+// while v1 endpoints convert this format to the originalMessage model
 type MessageV2 struct {
 	Id             string `json:"id" bson:"id"`
 	Timestamp      int64  `json:"timestamp" bson:"timestamp"`
