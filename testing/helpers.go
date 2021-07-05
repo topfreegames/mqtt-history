@@ -8,12 +8,13 @@
 package app
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +23,10 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/mqtt-history/app"
+	"github.com/topfreegames/mqtt-history/models"
+	"github.com/topfreegames/mqtt-history/mongoclient"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const cfgFile = "../config/test.yaml"
@@ -37,36 +42,6 @@ func GetDefaultTestApp() *app.App {
 // Get implements the GET http verb for testing purposes
 func Get(app *app.App, url string, t *testing.T) (int, string) {
 	return doRequest(app, "GET", url, "")
-}
-
-/*
-func GetWithQuery(app *App, url string, queryKey string, queryValue string, t *testing.T) *httpexpect.Response {
-
-	srv := app.Api.Servers.Main()
-
-	if srv == nil { // maybe the user called this after .Listen/ListenTLS/ListenUNIX, the t
-		srv = app.Api.ListenVirtual(app.Api.Config.Tester.ListeningAddr)
-	}
-
-	handler := srv.Handler
-	e := httpexpect.WithConfig(httpexpect.Config{
-		Reporter: httpexpect.NewAssertReporter(t),
-		Client: &http.Client{
-			Transport: httpexpect.NewFastBinder(handler),
-		},
-	})
-
-	return e.GET(url).WithQuery(queryKey, queryValue).Expect()
-}
-*/
-
-// Returns a chat index with today's date
-func GetChatIndex() string {
-	var buffer bytes.Buffer
-	t := time.Now().Local()
-	buffer.WriteString("chat-")
-	buffer.WriteString(t.Format("2006-01-02"))
-	return buffer.String()
 }
 
 func doRequest(app *app.App, method, url, body string) (int, string) {
@@ -93,4 +68,51 @@ func doRequest(app *app.App, method, url, body string) (int, string) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	return res.StatusCode, string(b)
+}
+
+func AuthorizeTestUserInTopics(ctx context.Context, topics []string) error {
+	var acl []interface{}
+	for _, topic := range topics {
+		acl = append(acl, app.ACL{Username: "test:test", Pubsub: []string{topic}})
+	}
+
+	insertAuthCallback := func(c *mongo.Collection) error {
+		var _, err = c.InsertMany(ctx, acl)
+		return err
+	}
+
+	err := mongoclient.GetCollection("mqtt_acl", insertAuthCallback)
+	return err
+}
+
+func InsertMongoMessages(ctx context.Context, topics []string) error {
+	var messages []interface{}
+	for i, topic := range topics {
+		message := models.MessageV2{
+			Id:             strconv.FormatInt(int64(i), 10),
+			GameId:         "game test",
+			PlayerId:       "test",
+			Blocked:        false,
+			ShouldModerate: true,
+			Timestamp:      time.Now().AddDate(0, 0, -i).Unix(),
+			Payload: bson.M{
+				fmt.Sprintf("test %d", i): fmt.Sprintf("test %d", i+1),
+			},
+			Topic:    topic,
+			Message:  fmt.Sprintf("message %d", i),
+			Metadata: nil,
+		}
+
+		messages = append(messages, message)
+	}
+
+	// and given that the user has 2 messages stored in mongo
+	insertMessagesCallback := func(c *mongo.Collection) error {
+		_, err := c.InsertMany(ctx, messages)
+		return err
+	}
+
+	messagesCollection := "messages"
+	err := mongoclient.GetCollection(messagesCollection, insertMessagesCallback)
+	return err
 }

@@ -1,0 +1,82 @@
+// mqtt-history
+// https://github.com/topfreegames/mqtt-history
+// Licensed under the MIT license:
+// http://www.opensource.org/licenses/mit-license
+// Copyright © 2016 Top Free Games <backend@tfgco.com>
+
+package app_test
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"testing"
+
+	goblin "github.com/franela/goblin"
+	. "github.com/onsi/gomega"
+	uuid "github.com/satori/go.uuid"
+	"github.com/topfreegames/mqtt-history/models"
+	. "github.com/topfreegames/mqtt-history/testing"
+)
+
+func TestHistoryV2Handler(t *testing.T) {
+	g := goblin.Goblin(t)
+
+	// special hook for gomega
+	RegisterFailHandler(func(m string, _ ...int) { g.Fail(m) })
+
+	g.Describe("History2", func() {
+		ctx := context.Background()
+		a := GetDefaultTestApp()
+
+		g.Describe("HistoryV2 Handler", func() {
+			g.It("It should return 401 if the user is not authorized into the topic", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				path := fmt.Sprintf("/v2/history/chat/test_%s?userid=test:test", testID)
+				status, _ := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusUnauthorized)
+			})
+
+			g.It("It should return 200 if the user is authorized into the topic in mongo", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessages(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				path := fmt.Sprintf("/v2/history/%s?userid=test:test", topic)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []models.MessageV2
+				err = json.Unmarshal([]byte(body), &messages)
+				Expect(err).To(BeNil())
+				g.Assert(len(messages)).Equal(1)
+				g.Assert(messages[0].Payload["test 0"]).Equal("test 1")
+				g.Assert(messages[0].Message).Equal("message 0")
+			})
+
+			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []models.Message
+				err = json.Unmarshal([]byte(body), &messages)
+				g.Assert(len(messages)).Equal(0)
+				Expect(err).To(BeNil())
+			})
+		})
+	})
+}
