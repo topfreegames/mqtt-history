@@ -33,8 +33,9 @@ func TestHistoryV2Handler(t *testing.T) {
 
 		g.Describe("HistoryV2 Handler", func() {
 			g.It("It should return 401 if the user is not authorized into the topic", func() {
+				userID := fmt.Sprintf("test:%s", uuid.NewV4().String())
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				path := fmt.Sprintf("/v2/history/chat/test_%s?userid=test:test", testID)
+				path := fmt.Sprintf("/v2/history/chat/test_%s?userid=%s", testID, userID)
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
