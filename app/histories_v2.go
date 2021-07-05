@@ -40,7 +40,5 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 			messages = append(messages, topicMessages...)
 		}
 		return c.JSON(http.StatusOK, messages)
-
-		return c.JSON(http.StatusOK, messages)
 	}
 }

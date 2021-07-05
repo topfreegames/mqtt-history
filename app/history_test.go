@@ -102,9 +102,6 @@ func TestHistoryHandler(t *testing.T) {
 				var messages []models.Message
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
-				print("messages")
-
-				print(messages)
 
 				g.Assert(len(messages)).Equal(1)
 				g.Assert(messages[0].Payload).Equal("{\"test 0\":\"test 1\"}")
