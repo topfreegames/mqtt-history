@@ -22,7 +22,6 @@ import (
 	"github.com/topfreegames/mqtt-history/models"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -43,8 +42,10 @@ func TestHistoriesHandler(t *testing.T) {
 			})
 
 			g.It("It should return 401 if the user is not authorized into the topics", func() {
+				userID := fmt.Sprintf("test:%s", uuid.NewV4().String())
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				path := fmt.Sprintf("/history/chat/test_?userid=test:test&topics=%s", testID)
+				testID2 := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				path := fmt.Sprintf("/v2/histories/chat/test?userid=%s&topics=%s,%s", userID, testID, testID2)
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
@@ -55,16 +56,8 @@ func TestHistoriesHandler(t *testing.T) {
 				topic := fmt.Sprintf("chat/test/%s", testID)
 				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
-				var topics, topics2 []string
-				topics = append(topics, topic)
-				topics2 = append(topics2, topic2)
-
-				query := func(c *mongo.Collection) error {
-					_, err := c.InsertMany(ctx, []interface{}{ACL{Username: "test:test", Pubsub: topics}, ACL{Username: "test:test", Pubsub: topics2}})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				authorizedTopics := []string{topic, topic2}
+				err := AuthorizeTestUserInTopics(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
 
 				testMessage := models.Message{
@@ -105,48 +98,11 @@ func TestHistoriesHandler(t *testing.T) {
 				topic := fmt.Sprintf("chat/test/%s", testID)
 				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
-				var topics, topics2 []string
-				topics = append(topics, topic)
-				topics2 = append(topics2, topic2)
-
-				// given that the user is authorized to read from these topics
-				insertAuthCallback := func(c *mongo.Collection) error {
-					_, err := c.InsertMany(ctx, []interface{}{ACL{Username: "test:test", Pubsub: topics}, ACL{Username: "test:test", Pubsub: topics2}})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", insertAuthCallback)
+				authorizedTopics := []string{topic, topic2}
+				err := AuthorizeTestUserInTopics(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
 
-				testMessage := models.MongoMessage{
-					Timestamp: time.Now().AddDate(0, 0, -1).Unix(),
-					Payload:   bson.M{
-						"original_payload": bson.M{
-							"test1": "test2",
-						},
-					},
-					Topic:     topic,
-				}
-
-				testMessage2 := models.MongoMessage{
-					// ensure the message was received 1 second before so that the mongo query can pick up this message
-					Timestamp: time.Now().Add(-1 * time.Second).Unix(),
-					Payload:   bson.M{
-						"original_payload": bson.M{
-							"test3": "test4",
-						},
-					},
-					Topic:     topic2,
-				}
-
-				// and given that the user has 2 messages stored in mongo
-				insertMessagesCallback := func(c *mongo.Collection) error {
-					_, err := c.InsertMany(ctx, []interface{}{testMessage, testMessage2})
-					return err
-				}
-
-				messagesCollection := a.Config.GetString("mongo.messages.collection")
-				err = mongoclient.GetCollection(messagesCollection, insertMessagesCallback)
+				err = InsertMongoMessages(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
 
 				// when the mongo feature flag is enabled
@@ -162,8 +118,8 @@ func TestHistoriesHandler(t *testing.T) {
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 				g.Assert(len(messages)).Equal(2)
-				g.Assert(messages[0].Payload).Equal("{\"original_payload\":{\"test1\":\"test2\"}}")
-				g.Assert(messages[1].Payload).Equal("{\"original_payload\":{\"test3\":\"test4\"}}")
+				g.Assert(messages[0].Payload).Equal("{\"test 0\":\"test 1\"}")
+				g.Assert(messages[1].Payload).Equal("{\"test 1\":\"test 2\"}")
 			})
 
 			g.It("It should return 200 if the user is authorized into at least one topic", func() {
@@ -172,16 +128,8 @@ func TestHistoriesHandler(t *testing.T) {
 				topic := fmt.Sprintf("chat/test/%s", testID)
 				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
-				var topics, topics2 []string
-				topics = append(topics, topic)
-				topics2 = append(topics2, topic2)
-
-				query := func(c *mongo.Collection) error {
-					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				authorizedTopics := []string{topic}
+				err := AuthorizeTestUserInTopics(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
 
 				testMessage := models.Message{
@@ -262,16 +210,8 @@ func TestHistoriesHandler(t *testing.T) {
 				topic := fmt.Sprintf("chat/test/%s", testID)
 				topic2 := fmt.Sprintf("chat/test/%s", testID2)
 
-				var topics, topics2 []string
-				topics = append(topics, topic)
-				topics2 = append(topics2, topic2)
-
-				query := func(c *mongo.Collection) error {
-					_, err := c.InsertMany(ctx, []interface{}{ACL{Username: "test:test", Pubsub: topics}, ACL{Username: "test:test", Pubsub: topics2}})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				authorizedTopics := []string{topic, topic2}
+				err := AuthorizeTestUserInTopics(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
 
 				testMessage := models.Message{

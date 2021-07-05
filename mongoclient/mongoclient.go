@@ -9,8 +9,12 @@ package mongoclient
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
+
+	"github.com/topfreegames/mqtt-history/models"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/spf13/viper"
 	"github.com/topfreegames/mqtt-history/logger"
@@ -54,4 +58,66 @@ func GetCollection(collection string, s func(collection *mongo.Collection) error
 	}
 	c := mongoDB.Database(database).Collection(collection)
 	return s(c)
+}
+
+// GetMessagesV2 returns messages stored in MongoDB by topic
+// It returns the MessageV2 model that is stored in MongoDB
+func GetMessagesV2(ctx context.Context, topic string, from int64, limit int64, collection string) []*models.MessageV2 {
+	searchResults := make([]*models.MessageV2, 0)
+
+	callback := func(coll *mongo.Collection) error {
+		query := bson.M{
+			"topic": topic,
+			"timestamp": bson.M{
+				"$lte": from, // less than or equal
+			},
+		}
+
+		sort := bson.D{
+			{"topic", 1},
+			{"timestamp", -1},
+		}
+
+		opts := options.Find()
+		opts.SetSort(sort)
+		opts.SetLimit(limit)
+
+		cursor, err := coll.Find(ctx, query, opts)
+		if err != nil {
+			return err
+		}
+
+		return cursor.All(ctx, &searchResults)
+	}
+
+	err := GetCollection(collection, callback)
+	if err != nil {
+		return []*models.MessageV2{}
+	}
+
+	return searchResults
+}
+
+// GetMessages returns messages stored in MongoDB by topic
+// since MongoDB uses the MessageV2 format, this method converts
+// the MessageV2 model into the Message one for retrocompatibility
+// Rhe main difference being that the payload field is now referred to as "original_payload" and
+// is a JSON object, not a string, and also the timestamp is int64 seconds since Unix epoch, not an ISODate
+func GetMessages(ctx context.Context, topic string, from int64, limit int64, collection string) []*models.Message {
+	searchResults := GetMessagesV2(ctx, topic, from, limit, collection)
+	messages := make([]*models.Message, 0)
+	for _, result := range searchResults {
+		payload := result.Payload
+		bytes, _ := json.Marshal(payload)
+
+		finalStr := string(bytes)
+		message := &models.Message{
+			Timestamp: time.Unix(result.Timestamp, 0),
+			Payload:   finalStr,
+			Topic:     topic,
+		}
+		messages = append(messages, message)
+	}
+
+	return messages
 }

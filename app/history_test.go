@@ -19,17 +19,9 @@ import (
 	. "github.com/onsi/gomega"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
-	. "github.com/topfreegames/mqtt-history/app"
 	"github.com/topfreegames/mqtt-history/models"
-	"github.com/topfreegames/mqtt-history/mongoclient"
 	. "github.com/topfreegames/mqtt-history/testing"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-func msToTime(ms int64) time.Time {
-	return time.Unix(0, ms*int64(time.Millisecond))
-}
 
 func TestHistoryHandler(t *testing.T) {
 	g := goblin.Goblin(t)
@@ -47,8 +39,9 @@ func TestHistoryHandler(t *testing.T) {
 
 		g.Describe("History Handler", func() {
 			g.It("It should return 401 if the user is not authorized into the topic", func() {
+				userID := fmt.Sprintf("test:%s", uuid.NewV4().String())
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
-				path := fmt.Sprintf("/history/chat/test_%s?userid=test:test", testID)
+				path := fmt.Sprintf("/history/chat/test_%s?userid=%s", testID, userID)
 				status, _ := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusUnauthorized)
 			})
@@ -66,16 +59,7 @@ func TestHistoryHandler(t *testing.T) {
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testID)
 
-				var topics []string
-				topics = append(topics, topic)
-
-				query := func(c *mongo.Collection) error {
-					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", query)
-
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
 				testMessage := models.Message{
@@ -102,35 +86,10 @@ func TestHistoryHandler(t *testing.T) {
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testID)
 
-				var topics []string
-				topics = append(topics, topic)
-
-				insertAuthCallback := func(c *mongo.Collection) error {
-					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", insertAuthCallback)
-
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
-				testMessage := models.MongoMessage{
-					Timestamp: time.Now().Add(-1 * time.Second).Unix(),
-					Payload:   bson.M{
-						"original_payload": bson.M{
-							"test1": "test2",
-						},
-					},
-					Topic:     topic,
-				}
-
-				insertMessageCallback := func(c *mongo.Collection) error {
-					_, err := c.InsertOne(ctx, testMessage)
-					return err
-				}
-
-				messagesCollection := a.Config.GetString("mongo.messages.collection")
-				err = mongoclient.GetCollection(messagesCollection, insertMessageCallback)
+				err = InsertMongoMessages(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
 				// enable mongo as message store
@@ -145,23 +104,14 @@ func TestHistoryHandler(t *testing.T) {
 				Expect(err).To(BeNil())
 
 				g.Assert(len(messages)).Equal(1)
-				g.Assert(messages[0].Payload).Equal("{\"original_payload\":{\"test1\":\"test2\"}}")
+				g.Assert(messages[0].Payload).Equal("{\"test 0\":\"test 1\"}")
 			})
 
 			g.It("It should return 200 and [] if the user is authorized into the topic and there are no messages", func() {
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testID)
 
-				var topics []string
-				topics = append(topics, topic)
-
-				query := func(c *mongo.Collection) error {
-					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", query)
-
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
@@ -177,17 +127,8 @@ func TestHistoryHandler(t *testing.T) {
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testID)
 
-				var topics []string
-				topics = append(topics, topic)
-				topics = append(topics, "chat/+")
-
-				query := func(c *mongo.Collection) error {
-					_, err := c.InsertOne(ctx, ACL{Username: "test:test", Pubsub: topics})
-					return err
-				}
-
-				err := mongoclient.GetCollection("mqtt_acl", query)
-
+				authorizedTopics := []string{topic, "chat/+"}
+				err := AuthorizeTestUserInTopics(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
 
 				testMessage := models.Message{
