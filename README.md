@@ -28,6 +28,8 @@ V2 returns the messages from Mongo in the following format:
     "id": ""
 }
 ```
+Use `make setup/mongo` to create indexes on MongoDB for querying messages over 
+`user_id` or `topic`, as well as a default 6 month TTL for messages stored in MongoDB.
 
 ## Features
 - Listen to healthcheck requests
@@ -47,6 +49,7 @@ If you want to run the application locally you can do so by running
 ```
 make deps
 make create-cassandra-table
+make setup/mongo
 make run
 ```
 
