@@ -20,6 +20,10 @@ create-cassandra-table:
 	@docker exec $(CASSANDRA_CONTAINER) cqlsh -e "$$(cat scripts/create.cql)";
 	@echo 'Done'
 
+# make setup/mongo MONGODB_HOST=mongodb://localhost:27017 or make MONGODB_HOST=mongodb://localhost:27017 setup/mongo
+setup/mongo:
+	go run scripts/setup_mongo_messages-index.go
+
 run-tests: run-containers
 	@make CASSANDRA_CONTAINER=mqtthistory_test_cassandra create-cassandra-table
 	@make coverage
