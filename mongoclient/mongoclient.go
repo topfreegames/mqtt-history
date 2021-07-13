@@ -15,6 +15,7 @@ import (
 
 	"github.com/topfreegames/mqtt-history/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 
 	"github.com/spf13/viper"
 	"github.com/topfreegames/mqtt-history/logger"
@@ -56,7 +57,14 @@ func GetCollection(collection string, s func(collection *mongo.Collection) error
 	if err != nil {
 		return err
 	}
-	c := mongoDB.Database(database).Collection(collection)
+	// staleness: check how old the data is before reading from Secondary replicas
+	secondaryPreferredOpts := readpref.WithMaxStaleness(90 * time.Second)
+	// secondaryPreferred: prefer reading from Secondary replicas, falling back to the primary if needed
+	secondaryPreferred := readpref.SecondaryPreferred(secondaryPreferredOpts)
+	dbOpts := options.Database().
+		SetReadPreference(secondaryPreferred)
+
+	c := mongoDB.Database(database, dbOpts).Collection(collection)
 	return s(c)
 }
 
