@@ -15,10 +15,10 @@ vendor:
 tidy:
 	@go mod tidy
 
-run-containers:
+run-containers: ## run all test containers
 	@cd test_containers && docker-compose up -d && cd ..
 
-kill-containers:
+kill-containers: ## kill all test containers
 	@cd test_containers && docker-compose stop && cd ..
 
 CASSANDRA_CONTAINER := mqtt-history_cassandra_1
@@ -45,7 +45,7 @@ coverage:
 run: ## start the API
 	@go run main.go start
 
-deps:
+deps: ## start the API dependencies as docker containers
 	@docker-compose up -d mongo cassandra
 
 cross: cross-linux cross-darwin
