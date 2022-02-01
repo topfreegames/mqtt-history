@@ -133,18 +133,33 @@ func convertRawMessageToModelMessage(rawMessage MongoMessage) (*models.MessageV2
 }
 
 func convertPlayerIdToString(playerID interface{}) (string, error) {
-	_, ok := playerID.(string)
+	// TODO: refactor this code using switch to improve readability
 
+	_, ok := playerID.(string)
 	if ok {
 		// force sprintf to avoid encoding issues
 		return fmt.Sprintf("%s", playerID), nil
 	}
 
-	playerIdAsNumber, ok := playerID.(float64)
-
-	if !ok {
-		return "", fmt.Errorf("error converting player id to float64 or string. player id raw value: %s", playerID)
+	playerIdAsFloat32, ok := playerID.(float32)
+	if ok {
+		return fmt.Sprintf("%f0", playerIdAsFloat32), nil
 	}
 
-	return fmt.Sprintf("%f0", playerIdAsNumber), nil
+	playerIdAsFloat64, ok := playerID.(float64)
+	if ok {
+		return fmt.Sprintf("%f0", playerIdAsFloat64), nil
+	}
+
+	playerIdAsInt32, ok := playerID.(int32)
+	if ok {
+		return fmt.Sprintf("%d", playerIdAsInt32), nil
+	}
+
+	playerIdAsInt64, ok := playerID.(int64)
+	if ok {
+		return fmt.Sprintf("%d", playerIdAsInt64), nil
+	}
+
+	return "", fmt.Errorf("error converting player id to float64 or string. player id raw value: %s", playerID)
 }
