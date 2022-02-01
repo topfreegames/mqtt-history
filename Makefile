@@ -1,4 +1,12 @@
-build:
+PROJECT_NAME := "mqtt-history"
+
+help: Makefile ## show list of commands
+	@echo "Choose a command run in "$(PROJECT_NAME)":"
+	@echo ""
+	@awk 'BEGIN {FS = ":.*?## "} /[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-40s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
+
+
+build: ## build project
 	@go build -mod vendor -a -installsuffix cgo -o . .
 
 vendor:
@@ -7,10 +15,10 @@ vendor:
 tidy:
 	@go mod tidy
 
-run-containers:
+run-containers: ## run all test containers
 	@cd test_containers && docker-compose up -d && cd ..
 
-kill-containers:
+kill-containers: ## kill all test containers
 	@cd test_containers && docker-compose stop && cd ..
 
 CASSANDRA_CONTAINER := mqtt-history_cassandra_1
@@ -21,23 +29,23 @@ create-cassandra-table:
 	@echo 'Done'
 
 # make setup/mongo MONGODB_HOST=mongodb://localhost:27017 or make MONGODB_HOST=mongodb://localhost:27017 setup/mongo
-setup/mongo:
+setup/mongo: 
 	go run scripts/setup_mongo_messages-index.go
 
-run-tests: run-containers
+run-tests: run-containers ## run tests using the docker containers
 	@make CASSANDRA_CONTAINER=mqtthistory_test_cassandra create-cassandra-table
 	@make coverage
 	@make kill-containers
 
-test: run-tests
+test: run-tests ## run tests using the docker containers (alias to run-tests)
 
 coverage:
 	@go test -coverprofile=coverage.out -covermode=count ./...
 
-run:
+run: ## start the API
 	@go run main.go start
 
-deps:
+deps: ## start the API dependencies as docker containers
 	@docker-compose up -d mongo cassandra
 
 cross: cross-linux cross-darwin

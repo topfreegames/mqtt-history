@@ -12,9 +12,9 @@ cassandra:
 mongo:
   host: "mongodb://localhost:27017"
   allow_anonymous: true
-  database: "mqtt"
+  database: "chat"
   messages:
-    enabled: false
+    enabled: true
     limit: 10
     collection: "messages"
 logger:
