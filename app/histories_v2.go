@@ -37,14 +37,9 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 
 		for _, topic := range authorizedTopics {
 			topicMessages := mongoclient.GetMessagesV2(c, topic, from, limit, collection)
-			// se eu tirar as mensagens, vou precisar tirar tmb os topicos relacionados a essas mensagens? pq estao correlacionados
-			//range topicmessages
 			for _, message := range topicMessages {
 				if !message.Blocked {
 					messages = append(messages, topicMessages...)
-					//primeiro item precisa ser o slice que eu quero
-					// criei um filtro para as mensagens bloqueadas, como construir um novo array para guardar essas msgns filtradas?
-					print(messages)
 				}
 			}
 		}
