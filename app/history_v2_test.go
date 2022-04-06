@@ -78,6 +78,25 @@ func TestHistoryV2Handler(t *testing.T) {
 				g.Assert(len(messages)).Equal(0)
 				Expect(err).To(BeNil())
 			})
+
+			g.It("It should return 200 and [] if the user is authorized into the topic but there are only blocked messages", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []models.MessageV2
+				g.Assert(len(messages)).Equal(0)
+				g.Assert(append(messages, models.MessageV2{Blocked: true}))
+
+				err = json.Unmarshal([]byte(body), &messages)
+				Expect(err).To(BeNil())
+			})
 		})
 	})
 }
