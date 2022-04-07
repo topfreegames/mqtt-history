@@ -33,15 +33,9 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 		}
 
 		messages := make([]*models.MessageV2, 0)
-		allMessages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
-		allMessages = mongoclient.GetMessagesV2(c, topic, from, limit, collection)
+		messages = mongoclient.GetMessagesV2(c, topic, from, limit, collection)
 
-		for _, message := range allMessages {
-			if !message.Blocked {
-				messages = append(messages, allMessages...)
-			}
-		}
 		return c.JSON(http.StatusOK, messages)
 	}
 }
