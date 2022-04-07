@@ -47,6 +47,7 @@ func GetMessagesV2(ctx context.Context, topic string, from int64, limit int64, c
 			"timestamp": bson.M{
 				"$lte": from, // less than or equal
 			},
+			"blocked": false,
 		}
 
 		sort := bson.D{
