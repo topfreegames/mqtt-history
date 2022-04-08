@@ -89,7 +89,6 @@ func InsertMongoMessages(ctx context.Context, topics []string) error {
 	return InsertMongoMessagesWithParameters(ctx, topics, false)
 }
 
-//primeira maneira de fazer, porem altera os outros lugfares que precisariam da func
 func InsertMongoMessagesWithParameters(ctx context.Context, topics []string, blocked bool) error {
 	var messages []interface{}
 	for i, topic := range topics {
