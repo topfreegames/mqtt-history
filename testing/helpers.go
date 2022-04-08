@@ -86,13 +86,18 @@ func AuthorizeTestUserInTopics(ctx context.Context, topics []string) error {
 }
 
 func InsertMongoMessages(ctx context.Context, topics []string) error {
+	return InsertMongoMessagesWithParameters(ctx, topics, false)
+}
+
+//primeira maneira de fazer, porem altera os outros lugfares que precisariam da func
+func InsertMongoMessagesWithParameters(ctx context.Context, topics []string, blocked bool) error {
 	var messages []interface{}
 	for i, topic := range topics {
 		message := models.MessageV2{
 			Id:             strconv.FormatInt(int64(i), 10),
 			GameId:         "game test",
 			PlayerId:       "test",
-			Blocked:        false,
+			Blocked:        blocked,
 			ShouldModerate: true,
 			Timestamp:      time.Now().AddDate(0, 0, -i).Unix(),
 			Payload: bson.M{
