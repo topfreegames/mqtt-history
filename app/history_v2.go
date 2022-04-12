@@ -17,8 +17,7 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "HistoryV2")
 		topic := c.ParamValues()[0]
-		userID, from, limit := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
-
+		userID, from, limit, retrieve := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
 		authenticated, _, err := IsAuthorized(c.StdContext(), app, userID, topic)
 		if err != nil {
 			return err
@@ -34,7 +33,7 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
-		messages = mongoclient.GetMessagesV2(c, topic, from, limit, collection)
+		messages = mongoclient.GetMessagesV2WithParameter(c, topic, from, limit, collection, retrieve)
 
 		return c.JSON(http.StatusOK, messages)
 	}
