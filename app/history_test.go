@@ -177,6 +177,34 @@ func TestHistoryHandler(t *testing.T) {
 
 				g.Assert(len(messages)).Equal(1)
 			})
+
+			g.It("It should return 200 and only blocked messages if the user is authorized into the topic", func() {
+				a.Defaults.MongoEnabled = true
+
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+				userID := "test:test"
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithParameters(ctx, []string{topic}, false)
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithParameters(ctx, []string{topic}, true)
+				Expect(err).To(BeNil())
+
+				path := fmt.Sprintf("/history/%s?userid=%s&limit=1000&retrieve=true", topic, userID)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []models.Message
+
+				err = json.Unmarshal([]byte(body), &messages)
+				Expect(err).To(BeNil())
+
+				g.Assert(len(messages)).Equal(1)
+			})
 		})
 	})
 }
