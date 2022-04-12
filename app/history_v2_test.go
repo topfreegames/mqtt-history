@@ -121,7 +121,7 @@ func TestHistoryV2Handler(t *testing.T) {
 				err = InsertMongoMessagesWithParameters(ctx, []string{topic}, true)
 				Expect(err).To(BeNil())
 
-				path := fmt.Sprintf("/v2/history/%s?userid=%s&limit=1000&retrieve=true", topic, userID)
+				path := fmt.Sprintf("/v2/history/%s?userid=%s&limit=1000&isBlocked=true", topic, userID)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 

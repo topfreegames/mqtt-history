@@ -43,7 +43,7 @@ func GetMessagesV2(ctx context.Context, topic string, from int64, limit int64, c
 	return GetMessagesV2WithParameter(ctx, topic, from, limit, collection, false)
 }
 
-func GetMessagesV2WithParameter(ctx context.Context, topic string, from int64, limit int64, collection string, retrieve bool) []*models.MessageV2 {
+func GetMessagesV2WithParameter(ctx context.Context, topic string, from int64, limit int64, collection string, isBlocked bool) []*models.MessageV2 {
 	rawResults := make([]MongoMessage, 0)
 
 	callback := func(coll *mongo.Collection) error {
@@ -52,7 +52,7 @@ func GetMessagesV2WithParameter(ctx context.Context, topic string, from int64, l
 			"timestamp": bson.M{
 				"$lte": from, // less than or equal
 			},
-			"blocked": retrieve,
+			"blocked": isBlocked,
 		}
 
 		sort := bson.D{

@@ -12,7 +12,7 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 	userID := c.QueryParam("userid")
 	from, _ := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 	limit, _ := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
-	retrieve, _ := strconv.ParseBool(c.QueryParam("retrieve"))
+	isBlocked, _ := strconv.ParseBool(c.QueryParam("isBlocked"))
 
 	if limit == 0 {
 		limit = defaultLimit
@@ -22,7 +22,7 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 		from = time.Now().Unix()
 	}
 
-	return userID, from, limit, retrieve
+	return userID, from, limit, isBlocked
 }
 
 func ParseHistoriesQueryParams(c echo.Context, defaultLimit int64) ([]string, string, int64, int64) {
