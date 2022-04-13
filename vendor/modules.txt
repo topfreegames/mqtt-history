@@ -165,7 +165,6 @@ github.com/pkg/sftp
 ## explicit
 github.com/satori/go.uuid
 # github.com/sirupsen/logrus v1.4.2
-## explicit
 github.com/sirupsen/logrus
 # github.com/spf13/afero v0.0.0-20160821083612-20500e2abd0d
 ## explicit

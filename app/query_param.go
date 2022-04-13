@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/op/go-logging"
 )
 
 func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64, int64, bool) {
@@ -15,6 +14,8 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 	from, _ := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 	limit, _ := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
 	isBlocked, err := strconv.ParseBool(c.QueryParam("isBlocked"))
+
+	var log = logging.MustGetLogger("")
 
 	if limit == 0 {
 		limit = defaultLimit
@@ -26,7 +27,7 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 
 	if err != nil {
 		// If it returns error, it will assume the default behavior(e.g. isBlocked=false).
-		log.Warningln(err)
+		log.Warning(err)
 		return userID, from, limit, false
 	}
 
