@@ -31,6 +31,7 @@ require (
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/pkg/sftp v0.0.0-20160721231453-a71e8f580e3b // indirect
 	github.com/satori/go.uuid v1.1.1-0.20160713180306-0aa62d5ddceb
+	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/afero v0.0.0-20160821083612-20500e2abd0d // indirect
 	github.com/spf13/cast v0.0.0-20160730092037-e31f36ffc91a // indirect
 	github.com/spf13/cobra v0.0.3
