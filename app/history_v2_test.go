@@ -134,6 +134,34 @@ func TestHistoryV2Handler(t *testing.T) {
 				g.Assert(messages[0].Blocked).Equal(true)
 
 			})
+
+			g.It("It should return 200 and only mensagens that are not blocked if the user is authorized into the topic but sent a wrong isBlocked flag", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+				userID := "test:test"
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithParameters(ctx, []string{topic}, false)
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithParameters(ctx, []string{topic}, true)
+				Expect(err).To(BeNil())
+
+				path := fmt.Sprintf("/v2/history/%s?userid=%s&limit=1000&isBlocked=wrongFlagHere", topic, userID)
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+
+				var messages []models.MessageV2
+
+				err = json.Unmarshal([]byte(body), &messages)
+				Expect(err).To(BeNil())
+
+				g.Assert(len(messages)).Equal(1)
+				g.Assert(messages[0].Blocked).Equal(false)
+
+			})
 		})
 	})
 }
