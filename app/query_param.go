@@ -1,15 +1,16 @@
 package app
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/labstack/echo"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64, int64, bool, error) {
+func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64, int64, bool) {
 	userID := c.QueryParam("userid")
 	from, _ := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 	limit, _ := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
@@ -25,11 +26,11 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 
 	if err != nil {
 		// If it returns error, it will assume the default behavior(e.g. isBlocked=false).
-		fmt.Println("ERROR:", err)
-		return userID, from, limit, false, err
+		log.Warningln(err)
+		return userID, from, limit, false
 	}
 
-	return userID, from, limit, isBlocked, nil
+	return userID, from, limit, isBlocked
 }
 
 func ParseHistoriesQueryParams(c echo.Context, defaultLimit int64) ([]string, string, int64, int64) {
