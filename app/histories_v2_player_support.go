@@ -16,10 +16,10 @@ import (
 func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "HistoriesV2PlayerSupport")
-		//topic := c.ParamValues()[0]
+		topic := c.ParamValues()[0]
 
 		userID, _, limit, isBlocked := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
-		authenticated, _, err := IsAuthorized(c.StdContext(), app, userID)
+		authenticated, _, err := IsAuthorized(c.StdContext(), app, userID, topic)
 		if err != nil {
 			return err
 		}
@@ -30,8 +30,8 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 		to := transformDate(finalDateParamsFilter)
 
 		logger.Logger.Debugf(
-			"user %s (authenticated=%v) is asking for history v2 with args from=%d to=%d and limit=%d",
-			userID, authenticated, from, to, limit)
+			"user %s (authenticated=%v) is asking for history v2 for topic %s with args from=%d to=%d and limit=%d",
+			userID, authenticated, topic, from, to, limit)
 
 		if !authenticated {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
@@ -39,7 +39,7 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
-		messages = mongoclient.GetMessagesPlayerSupportV2WithParameter(c, from, to, limit, collection, isBlocked)
+		messages = mongoclient.GetMessagesPlayerSupportV2WithParameter(c, topic, from, to, limit, collection, isBlocked)
 
 		return c.JSON(http.StatusOK, messages)
 	}
