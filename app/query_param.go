@@ -9,8 +9,9 @@ import (
 	"github.com/topfreegames/mqtt-history/logger"
 )
 
-func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64, int64, bool) {
+func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, string, int64, int64, bool) {
 	userID := c.QueryParam("userid")
+	playerId := c.QueryParam("playerId")
 	from, _ := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 	limit, _ := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
 	isBlocked, err := strconv.ParseBool(c.QueryParam("isBlocked"))
@@ -26,10 +27,10 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 	if err != nil {
 		// If it returns error, it will assume the default behavior(e.g. isBlocked=false).
 		logger.Logger.Warningf("Error getting isBlocked parameter, assuming default behavior. Error: %s", err.Error())
-		return userID, from, limit, false
+		return userID, playerId, from, limit, false
 	}
 
-	return userID, from, limit, isBlocked
+	return userID, playerId, from, limit, isBlocked
 }
 
 func ParseHistoriesQueryParams(c echo.Context, defaultLimit int64) ([]string, string, int64, int64) {
