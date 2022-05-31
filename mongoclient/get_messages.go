@@ -171,7 +171,7 @@ func convertPlayerIdToString(playerID interface{}) (string, error) {
 	return "", fmt.Errorf("error converting player id to float64 or string. player id raw value: %s", playerID)
 }
 
-func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, topic string, from int64, to int64, limit int64, collection string, isBlocked bool) []*models.MessageV2 {
+func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, topic string, from int64, to int64, limit int64, collection string, isBlocked bool, playerId string) []*models.MessageV2 {
 	rawResults := make([]MongoMessage, 0)
 
 	callback := func(coll *mongo.Collection) error {
@@ -180,9 +180,9 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, topic string, 
 				"$gte": from, //greather than or equal
 				"$lte": to,   // less than or equal
 			},
-			"blocked": isBlocked,
+			"player_id": playerId,
+			"blocked":   isBlocked,
 		}
-
 		sort := bson.D{
 			{"topic", 1},
 			{"timestamp", -1},
@@ -199,7 +199,6 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, topic string, 
 
 		return cursor.All(ctx, &rawResults)
 	}
-
 	// retrieve the collection data
 	err := GetCollection(collection, callback)
 	if err != nil {
