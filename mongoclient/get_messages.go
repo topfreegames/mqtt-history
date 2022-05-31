@@ -50,7 +50,6 @@ func GetMessagesV2WithParameter(ctx context.Context, topic string, from int64, l
 		query := bson.M{
 			"topic": topic,
 			"timestamp": bson.M{
-				// preciso adicionar o to, porem, isso vai acabar quebrando os outros lugares que usam o timestamp e so passam o from....
 				"$lte": from, // less than or equal
 			},
 			"blocked": isBlocked,
