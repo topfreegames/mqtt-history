@@ -210,7 +210,7 @@ func (app *App) configureApplication() {
 	a.Get("/v2/history/*", HistoryV2Handler(app))
 	a.Get("/v2/histories/*", HistoriesV2Handler(app))
 	a.Get("/:other", NotFoundHandler(app))
-	a.Get("/ps/v2/histories/*", HistoriesV2PSHandler(app))
+	a.Get("/ps/v2/history*", HistoriesV2PSHandler(app))
 }
 
 // OnErrorHandler handles application panics
