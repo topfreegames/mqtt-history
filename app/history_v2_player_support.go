@@ -2,8 +2,6 @@ package app
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/topfreegames/mqtt-history/logger"
@@ -18,23 +16,28 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 		c.Set("route", "HistoriesV2PlayerSupport")
 		topic := c.ParamValues()[0]
 
-		userID, playerId, _, limit, isBlocked := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
-		authenticated, _, err := IsAuthorized(c.StdContext(), app, userID, topic)
-		if err != nil {
-			return err
-		}
+		userID, playerId, _, _, limit, isBlocked := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
 
 		initialDateParamsFilter := c.QueryParam("initialDate")
+		from, err := transformDate(initialDateParamsFilter)
+		if err != nil {
+			logger.Logger.Warningf("Error: %s", err.Error())
+			return c.JSON(http.StatusUnprocessableEntity, "Error getting initialDate parameter.")
+		}
+
 		finalDateParamsFilter := c.QueryParam("finalDate")
-		from := transformDate(initialDateParamsFilter)
-		to := transformDate(finalDateParamsFilter)
+		to, err := transformDate(finalDateParamsFilter)
+		if err != nil {
+			logger.Logger.Warningf("Error: %s", err.Error())
+			return c.JSON(http.StatusUnprocessableEntity, "Error getting finalDate parameter.")
+		}
 
 		logger.Logger.Debugf(
 			"user %s (authenticated=%v) is asking for history v2 for topic %s with args from=%d to=%d and limit=%d",
-			userID, authenticated, topic, from, to, limit)
+			userID, from, to, limit)
 
-		if !authenticated {
-			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
+		if err != nil {
+			return err
 		}
 
 		messages := make([]*models.MessageV2, 0)
@@ -45,12 +48,11 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 	}
 }
 
-func transformDate(dateParamsFilter string) int64 {
-
-	res := strings.Split(dateParamsFilter, "/")
-	day, _ := strconv.Atoi(res[0])
-	month, _ := strconv.Atoi(res[1])
-	year, _ := strconv.Atoi(res[2])
-
-	return time.Date(year, time.Month(month), day, 23, 59, 59, 59, time.UTC).Unix()
+func transformDate(dateParamsFilter string) (int64, error) {
+	utcFormat := "2006-01-02"
+	t, err := time.Parse(utcFormat, dateParamsFilter)
+	if err != nil {
+		return 0, err
+	}
+	return t.Unix(), err
 }
