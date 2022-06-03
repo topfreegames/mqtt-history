@@ -34,10 +34,6 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 			"user %s (authenticated=%v) is asking for history v2 for topic %s with args from=%d to=%d and limit=%d",
 			userID, from, to, limit)
 
-		if err != nil {
-			return err
-		}
-
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
 		messages = mongoclient.GetMessagesPlayerSupportV2WithParameter(c, topic, from, to, limit, collection, isBlocked, playerId)
