@@ -14,7 +14,7 @@ import (
 func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "HistoriesV2PlayerSupport")
-		userID, playerId, topic, _, _, limit, isBlocked := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
+		userID, playerId, topic, _, _, limit, isBlocked := ParseHistoryPSQueryParams(c, app.Defaults.LimitOfMessages)
 
 		initialDateParamsFilter := c.QueryParam("initialDate")
 		from, err := transformDate(initialDateParamsFilter)
@@ -31,7 +31,7 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 		}
 
 		logger.Logger.Debugf(
-			"user %s (authenticated=%v) is asking for history v2 for topic %s with args from=%d to=%d and limit=%d",
+			"user %s is asking for history v2 for topic %s with date args from=%d to=%d and limit=%d",
 			userID, from, to, limit)
 
 		messages := make([]*models.MessageV2, 0)
