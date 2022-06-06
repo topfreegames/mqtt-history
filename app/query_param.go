@@ -48,3 +48,23 @@ func ParseHistoriesQueryParams(c echo.Context, defaultLimit int64) ([]string, st
 
 	return topicsSuffix, userID, from, limit
 }
+
+func ParseHistoryPSQueryParams(c echo.Context, defaultLimit int64) (string, string, string, int64, bool) {
+	userID := c.QueryParam("userid")
+	playerId := c.QueryParam("playerId")
+	topic := c.QueryParam("topic")
+	limit, err := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
+	isBlocked, err := strconv.ParseBool(c.QueryParam("isBlocked"))
+
+	if limit == 0 {
+		limit = defaultLimit
+	}
+
+	if err != nil {
+		// If it returns error, it will assume the default behavior(e.g. isBlocked=false).
+		logger.Logger.Warningf("Error getting isBlocked parameter, assuming default behavior. Error: %s", err.Error())
+		return userID, playerId, topic, limit, false
+	}
+
+	return userID, playerId, topic, limit, isBlocked
+}

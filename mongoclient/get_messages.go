@@ -169,3 +169,70 @@ func convertPlayerIdToString(playerID interface{}) (string, error) {
 
 	return "", fmt.Errorf("error converting player id to float64 or string. player id raw value: %s", playerID)
 }
+
+func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, topic string, from int64, to int64, limit int64,
+	collection string, isBlocked bool, playerId string) []*models.MessageV2 {
+	rawResults := make([]MongoMessage, 0)
+
+	callback := func(coll *mongo.Collection) error {
+		query := bson.M{
+			"timestamp": bson.M{
+				"$gte": from, //greather than or equal
+				"$lte": to,   // less than or equal
+			},
+			"player_id": playerId,
+			"blocked":   isBlocked,
+			"topic":     topic,
+		}
+		sort := bson.D{
+			{"topic", 1},
+			{"timestamp", -1},
+		}
+
+		if topic == "" {
+			query = bson.M{
+				"timestamp": bson.M{
+					"$gte": from,
+					"$lte": to,
+				},
+				"player_id": playerId,
+				"blocked":   isBlocked,
+			}
+			sort = bson.D{
+				{"topic", 1},
+				{"timestamp", -1},
+			}
+		}
+
+		opts := options.Find()
+		opts.SetSort(sort)
+		opts.SetLimit(limit)
+
+		cursor, err := coll.Find(ctx, query, opts)
+		if err != nil {
+			return err
+		}
+
+		return cursor.All(ctx, &rawResults)
+	}
+	// retrieve the collection data
+	err := GetCollection(collection, callback)
+	if err != nil {
+		logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
+		return []*models.MessageV2{}
+	}
+
+	// convert the raw results to the MessageV2 model
+	searchResults := make([]*models.MessageV2, len(rawResults))
+
+	for i := 0; i < len(rawResults); i++ {
+		searchResults[i], err = convertRawMessageToModelMessage(rawResults[i])
+
+		if err != nil {
+			logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
+			return []*models.MessageV2{}
+		}
+	}
+
+	return searchResults
+}
