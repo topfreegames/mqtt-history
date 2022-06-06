@@ -204,6 +204,21 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, topic string, 
 			}
 		}
 
+		if playerId == "" {
+			query = bson.M{
+				"timestamp": bson.M{
+					"$gte": from,
+					"$lte": to,
+				},
+				"topic":   topic,
+				"blocked": isBlocked,
+			}
+			sort = bson.D{
+				{"topic", 1},
+				{"timestamp", -1},
+			}
+		}
+
 		opts := options.Find()
 		opts.SetSort(sort)
 		opts.SetLimit(limit)
