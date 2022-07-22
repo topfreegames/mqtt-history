@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	ascending = bsonx.Int32(1)
+	ascending  = bsonx.Int32(1)
 	descending = bsonx.Int32(-1)
 )
 
@@ -53,11 +53,17 @@ func main() {
 	}
 	fmt.Println("Created 'user_id' index")
 
-	err = createTTLIndex(coll)
+	err = createTTLIndex(coll, "timestamp", "messages_TTL")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("Created 'TTL' index")
+
+	err = createTTLIndex(coll, "created_at", "created_at_TTL")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Created 'created_at_TTL' index")
 }
 
 func getConfig(envVar, fallback string) string {
@@ -112,15 +118,15 @@ func createUserIndex(coll *mongo.Collection) error {
 	return createIndex(index, coll)
 }
 
-func createTTLIndex(coll *mongo.Collection) error {
+func createTTLIndex(coll *mongo.Collection, key, name string) error {
 	opts := options.Index()
 	opts.SetExpireAfterSeconds(int32(TTL / time.Second))
-	opts.SetName("messages_TTL")
+	opts.SetName(name)
 
 	index := mongo.IndexModel{
 		Keys: bsonx.Doc{
 			{
-				Key:   "timestamp",
+				Key:   key,
 				Value: descending,
 			},
 		},
