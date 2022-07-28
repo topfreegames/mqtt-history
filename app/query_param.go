@@ -25,7 +25,7 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 
 	if err != nil {
 		// If it returns error, it will assume the default behavior(e.g. isBlocked=false).
-		logger.Logger.Warningf("Error getting isBlocked parameter, assuming default behavior. Error: %s", err.Error())
+		logger.Logger.Debugf("Assuming the default behavior: isBlocked=false. Message: %s", err.Error())
 		return userID, from, limit, false
 	}
 
@@ -62,7 +62,7 @@ func ParseHistoryPSQueryParams(c echo.Context, defaultLimit int64) (string, stri
 
 	if err != nil {
 		// If it returns error, it will assume the default behavior(e.g. isBlocked=false).
-		logger.Logger.Warningf("Error getting isBlocked parameter, assuming default behavior. Error: %s", err.Error())
+		logger.Logger.Debugf("Assuming the default behavior: isBlocked=false. Message: %s", err.Error())
 		return userID, playerId, topic, limit, false
 	}
 
