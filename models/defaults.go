@@ -6,4 +6,5 @@ type Defaults struct {
 	LimitOfMessages         int64
 	MongoEnabled            bool
 	MongoMessagesCollection string
+	CassandraEnabled        bool
 }
