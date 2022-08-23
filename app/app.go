@@ -87,7 +87,9 @@ func (app *App) configureStorage() {
 	}
 
 	app.configureBucket()
-	app.configureCassandra()
+	if app.Defaults.CassandraEnabled {
+		app.configureCassandra()
+	}
 }
 
 func (app *App) configureDefaults() {
@@ -96,6 +98,7 @@ func (app *App) configureDefaults() {
 		LimitOfMessages:         app.Config.GetInt64("cassandra.messages.limit"),
 		MongoEnabled:            app.Config.GetBool("mongo.messages.enabled"),
 		MongoMessagesCollection: app.Config.GetString("mongo.messages.collection"),
+		CassandraEnabled:        app.Config.GetBool("cassandra.enabled"),
 	}
 }
 

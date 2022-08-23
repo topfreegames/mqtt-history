@@ -5,6 +5,7 @@ healthcheck:
 cassandra:
   hosts: "localhost:9042"
   keyspace: "chat"
+  enabled: true
   bucket:
     quantity: 10 # number of buckets to read on a select using limit
   messages:
