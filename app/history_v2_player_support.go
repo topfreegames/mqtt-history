@@ -48,5 +48,7 @@ func transformDate(dateParamsFilter string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	t = t.Add(time.Hour*23 + time.Minute*59 + time.Second*59)
+
 	return t.Unix(), err
 }
