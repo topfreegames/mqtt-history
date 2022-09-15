@@ -17,14 +17,14 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 		userID, playerId, topic, limit, isBlocked := ParseHistoryPSQueryParams(c, app.Defaults.LimitOfMessages)
 
 		initialDateParamsFilter := c.QueryParam("initialDate")
-		from, err := transformDate(initialDateParamsFilter)
+		from, err := transformDate(initialDateParamsFilter, true)
 		if err != nil {
 			logger.Logger.Warningf("Error: %s", err.Error())
 			return c.JSON(http.StatusUnprocessableEntity, "Error getting initialDate parameter.")
 		}
 
 		finalDateParamsFilter := c.QueryParam("finalDate")
-		to, err := transformDate(finalDateParamsFilter)
+		to, err := transformDate(finalDateParamsFilter, false)
 		if err != nil {
 			logger.Logger.Warningf("Error: %s", err.Error())
 			return c.JSON(http.StatusUnprocessableEntity, "Error getting finalDate parameter.")
@@ -42,13 +42,16 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 	}
 }
 
-func transformDate(dateParamsFilter string) (int64, error) {
+func transformDate(dateParamsFilter string, isInitial bool) (int64, error) {
 	utcFormat := "2006-01-02"
 	t, err := time.Parse(utcFormat, dateParamsFilter)
 	if err != nil {
 		return 0, err
 	}
-	t = t.Add(time.Hour*23 + time.Minute*59 + time.Second*59)
+
+	if !isInitial {
+		t = t.Add(time.Hour*23 + time.Minute*59 + time.Second*59)
+	}
 
 	return t.Unix(), err
 }
