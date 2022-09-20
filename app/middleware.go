@@ -95,6 +95,8 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			zap.Int("statusCode", status),
 			zap.Duration("latency", latency),
 			zap.String("ip", ip),
+			zap.String("realIP", c.Request().RealIP()),
+			zap.String("referer", c.Request().Referer()),
 			zap.String("method", method),
 			zap.String("path", path),
 		)
