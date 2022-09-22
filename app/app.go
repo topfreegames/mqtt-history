@@ -21,11 +21,13 @@ import (
 	"github.com/labstack/echo/engine/standard"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/echo"
-	"github.com/topfreegames/extensions/jaeger"
 	"github.com/topfreegames/mqtt-history/cassandra"
 	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/models"
 	"github.com/uber-go/zap"
+
+	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/config"
 )
 
 // App is the struct that defines the application
@@ -147,15 +149,25 @@ func (app *App) configureStatsD() {
 }
 
 func (app *App) configureJaeger() {
-	opts := jaeger.Options{
-		Disabled:    app.Config.GetBool("jaeger.disabled"),
-		Probability: app.Config.GetFloat64("jaeger.samplingProbability"),
-		ServiceName: "mqtt-history",
-	}
-
-	_, err := jaeger.Configure(opts)
+	logger.Logger.Info("Initializing Jaeger Global Tracer...")
+	cfg, err := config.FromEnv()
 	if err != nil {
-		logger.Logger.Error("Failed to initialize Jaeger.")
+		logger.Logger.Error("Failed to load Jaeger config from env", err)
+		return
+	}
+	if !cfg.Disabled {
+		if cfg.ServiceName == "" {
+			cfg.ServiceName = "mqtt-history"
+		}
+		if cfg.Sampler.Type == "" {
+			cfg.Sampler.Type = jaeger.SamplerTypeProbabilistic
+		}
+	}
+	logger.Logger.Info("Jaeger Config: ", cfg)
+	if _, err := cfg.InitGlobalTracer(""); err != nil {
+		logger.Logger.Error("Failed to initialize Jaeger.", err)
+	} else {
+		logger.Logger.Info("Jaeger Global Tracer initialized successfully.")
 	}
 }
 
@@ -196,16 +208,13 @@ func (app *App) configureApplication() {
 	a.Use(NewLoggerMiddleware(zap.New(
 		zap.NewJSONEncoder(),
 	)).Serve)
-	a.Use(NewSentryMiddleware(app).Serve)
+	a.Use(NewJaegerMiddleware())
+	a.Use(NewSentryMiddleware().Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
 	if app.Config.GetBool("extensions.dogstatsd.enabled") {
 		a.Use(extechomiddleware.NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
 	}
-	a.Use(NewNewRelicMiddleware(app, zap.New(
-		zap.NewJSONEncoder(),
-	)).Serve)
-
 	// Routes
 	a.Get("/healthcheck", HealthCheckHandler(app))
 	a.Get("/history/*", HistoryHandler(app))

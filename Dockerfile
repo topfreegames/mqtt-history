@@ -1,6 +1,6 @@
-FROM golang:1.15-alpine AS build
+FROM golang:1.18-alpine AS build
 
-MAINTAINER TFG Co <backend@tfgco.com>
+LABEL maintainer="backend@tfgco.com"
 
 WORKDIR /src
 
@@ -24,11 +24,6 @@ COPY --from=build /src/mqtt-history ./mqtt-history
 COPY --from=build /src/setup_mongo_messages-index ./setup_mongo_messages-index
 COPY --from=build /src/config ./config
 
-ENV MQTTHISTORY_API_TLS false
-ENV MQTTHISTORY_API_CERTFILE ./misc/example.crt
-ENV MQTTHISTORY_API_KEYFILE ./misc/example.key
-ENV MQTTHISTORY_CONFIG_FILE ./config/local.yaml
+EXPOSE 8888
 
-EXPOSE 5000
-
-CMD ./start_docker.sh
+CMD ./mqtt-history start

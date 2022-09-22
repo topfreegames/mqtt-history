@@ -2,15 +2,20 @@ package app
 
 import (
 	"fmt"
+	"net/http"
 	"runtime/debug"
 	"time"
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/engine"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
+	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/uber-go/zap"
 )
 
-//VersionMiddleware automatically adds a version header to response
+// VersionMiddleware automatically adds a version header to response
 func VersionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderServer, fmt.Sprintf("mqtt-history/v%s", VERSION))
@@ -18,19 +23,19 @@ func VersionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-//NewRecoveryMiddleware returns a configured middleware
+// NewRecoveryMiddleware returns a configured middleware
 func NewRecoveryMiddleware(onError func(interface{}, []byte)) *RecoveryMiddleware {
 	return &RecoveryMiddleware{
 		OnError: onError,
 	}
 }
 
-//RecoveryMiddleware recovers from errors in Echo
+// RecoveryMiddleware recovers from errors in Echo
 type RecoveryMiddleware struct {
 	OnError func(interface{}, []byte)
 }
 
-//Serve executes on error handler when errors happen
+// Serve executes on error handler when errors happen
 func (r RecoveryMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer func() {
@@ -51,7 +56,7 @@ func (r RecoveryMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-//LoggerMiddleware is responsible for logging to Zap all requests
+// LoggerMiddleware is responsible for logging to Zap all requests
 type LoggerMiddleware struct {
 	Logger zap.Logger
 }
@@ -122,10 +127,8 @@ func NewLoggerMiddleware(theLogger zap.Logger) *LoggerMiddleware {
 	return l
 }
 
-//SentryMiddleware is responsible for sending all exceptions to sentry
-type SentryMiddleware struct {
-	App *App
-}
+// SentryMiddleware is responsible for sending all exceptions to sentry
+type SentryMiddleware struct{}
 
 // Serve serves the middleware
 func (s SentryMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
@@ -144,20 +147,18 @@ func (s SentryMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-//NewSentryMiddleware returns a new sentry middleware
-func NewSentryMiddleware(app *App) *SentryMiddleware {
-	return &SentryMiddleware{
-		App: app,
-	}
+// NewSentryMiddleware returns a new sentry middleware
+func NewSentryMiddleware() *SentryMiddleware {
+	return &SentryMiddleware{}
 }
 
-//NewNewRelicMiddleware returns the logger middleware
+// NewNewRelicMiddleware returns the logger middleware
 func NewNewRelicMiddleware(app *App, theLogger zap.Logger) *NewRelicMiddleware {
 	l := &NewRelicMiddleware{App: app, Logger: theLogger}
 	return l
 }
 
-//NewRelicMiddleware is responsible for logging to Zap all requests
+// NewRelicMiddleware is responsible for logging to Zap all requests
 type NewRelicMiddleware struct {
 	App    *App
 	Logger zap.Logger
@@ -182,4 +183,80 @@ func (nr *NewRelicMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 
 		return nil
 	}
+}
+
+// NewJaegerMiddleware create a new middleware to instrument traces.
+func NewJaegerMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			tracer := opentracing.GlobalTracer()
+
+			request := c.Request()
+			method := request.Method()
+			url := request.URL()
+			header := getCarrier(request)
+			parent, err := tracer.Extract(opentracing.HTTPHeaders, header)
+			if err != nil && err != opentracing.ErrSpanContextNotFound {
+				logger.Logger.Errorf(
+					"Could no extract parent trace from incoming request. Method: %s. Path: %s.",
+					method,
+					url.Path(),
+					err,
+				)
+			}
+
+			operationName := fmt.Sprintf("HTTP %s %s", method, c.Path())
+			reference := opentracing.ChildOf(parent)
+			tags := opentracing.Tags{
+				"http.method":   method,
+				"http.host":     request.Host(),
+				"http.pathname": url.Path(),
+				"http.query":    url.QueryString(),
+				"span.kind":     "server",
+			}
+			span := opentracing.StartSpan(operationName, reference, tags)
+			defer span.Finish()
+			defer func(span opentracing.Span) {
+				if err, ok := recover().(error); ok {
+					span.SetTag("error", true)
+					span.LogFields(
+						log.String("event", "error"),
+						log.String("message", "Panic serving request."),
+						log.Error(err),
+					)
+					panic(err)
+				}
+			}(span)
+
+			ctx := c.StdContext()
+			ctx = opentracing.ContextWithSpan(ctx, span)
+			c.SetStdContext(ctx)
+
+			err = next(c)
+			if err != nil {
+				span.SetTag("error", true)
+				span.LogFields(
+					log.String("event", "error"),
+					log.String("message", "Error serving request."),
+					log.Error(err),
+				)
+			}
+
+			response := c.Response()
+			statusCode := response.Status()
+			span.SetTag("http.status_code", statusCode)
+
+			return err
+		}
+	}
+}
+
+func getCarrier(request engine.Request) opentracing.HTTPHeadersCarrier {
+	original := request.Header()
+	copy := make(http.Header)
+	for _, key := range original.Keys() {
+		value := original.Get(key)
+		copy.Set(key, value)
+	}
+	return opentracing.HTTPHeadersCarrier(copy)
 }

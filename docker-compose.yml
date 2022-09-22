@@ -1,5 +1,3 @@
-version: '2'
-
 services:
   cassandra:
     image: cassandra:3.11
@@ -10,12 +8,22 @@ services:
   mqtt-history:
     build:
       context: ./
+      no_cache: true
     environment:
       - MQTTHISTORY_MQTTSERVER_HOST=mosquitto
       - MQTTHISTORY_MQTTSERVER_PORT=1883
+      - MQTTHISTORY_MONGO_HOST=mongodb://mongo:27017/?ssl=false
+      # if you want to use cassandra, uncomment the next 2 env vars
+      # - MQTTHISTORY_CASSANDRA_ENABLED=true
+      # - MQTTHISTORY_CASSANDRA_HOSTS=cassandra:9042
+      - JAEGER_DISABLED=false
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+      - JAEGER_REPORTER_LOG_SPANS=true
+      - JAEGER_SAMPLER_TYPE=probabilistic
+      - JAEGER_SAMPLER_PARAM=1.0
     ports:
-      - "8888:80"
-      - "8883:443"
+      - "8888:8888"
     depends_on:
       - mosquitto
       - cassandra
@@ -23,3 +31,8 @@ services:
     image: mongo:3.6.23
     ports:
       - "27017:27017"
+  jaeger:
+    image: jaegertracing/all-in-one:1.6
+    ports:
+      - 6831:6831/udp
+      - 16686:16686
