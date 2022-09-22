@@ -20,9 +20,6 @@ mongo:
     collection: "messages"
 logger:
   level: "debug"
-jaeger:
-  disabled: false
-  samplingProbability: 1.0
 extensions:
   dogstatsd:
     host: localhost:8125

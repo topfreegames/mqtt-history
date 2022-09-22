@@ -6,7 +6,6 @@ import (
 	"github.com/topfreegames/mqtt-history/mongoclient"
 
 	"github.com/labstack/echo"
-	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/models"
 )
 
@@ -22,7 +21,6 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			topics[i] = topicPrefix + "/" + topicSuffix
 		}
 
-		logger.Logger.Debugf("user %s is asking for histories for topicPrefix %s with args topics=%s from=%d and limit=%d", userID, topicPrefix, topics, from, limit)
 		authenticated, authorizedTopics, err := IsAuthorized(c.StdContext(), app, userID, topics...)
 		if err != nil {
 			return err
