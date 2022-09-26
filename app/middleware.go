@@ -2,17 +2,12 @@ package app
 
 import (
 	"fmt"
-	"net/http"
 	"runtime/debug"
 	"time"
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 	"github.com/topfreegames/extensions/middleware"
-	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/uber-go/zap"
 )
 
@@ -235,79 +230,4 @@ func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD) *ResponseT
 	return &ResponseTimeMetricsMiddleware{
 		DDStatsD: ddStatsD,
 	}
-}
-
-// NewJaegerMiddleware create a new middleware to instrument traces.
-func NewJaegerMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			tracer := opentracing.GlobalTracer()
-
-			request := c.Request()
-			method := request.Method()
-			url := request.URL()
-			header := getCarrier(request)
-			parent, err := tracer.Extract(opentracing.HTTPHeaders, header)
-			if err != nil && err != opentracing.ErrSpanContextNotFound {
-				logger.Logger.Errorf(
-					"Could no extract parent trace from incoming request. Method: %s. Path: %s.",
-					method,
-					url.Path(),
-					err,
-				)
-			}
-
-			operationName := fmt.Sprintf("HTTP %s %s", method, c.Path())
-			reference := opentracing.ChildOf(parent)
-			tags := opentracing.Tags{
-				"http.method":   method,
-				"http.host":     request.Host(),
-				"http.pathname": url.Path(),
-				"http.query":    url.QueryString(),
-				"span.kind":     "server",
-			}
-			span := opentracing.StartSpan(operationName, reference, tags)
-			defer span.Finish()
-			defer func(span opentracing.Span) {
-				if err, ok := recover().(error); ok {
-					span.SetTag("error", true)
-					span.LogFields(
-						log.String("event", "error"),
-						log.String("message", "Panic serving request."),
-						log.Error(err),
-					)
-					panic(err)
-				}
-			}(span)
-
-			ctx := c.StdContext()
-			ctx = opentracing.ContextWithSpan(ctx, span)
-			c.SetStdContext(ctx)
-
-			err = next(c)
-			if err != nil {
-				span.SetTag("error", true)
-				span.LogFields(
-					log.String("event", "error"),
-					log.String("message", "Error serving request."),
-					log.Error(err),
-				)
-			}
-
-			response := c.Response()
-			statusCode := response.Status()
-			span.SetTag("http.status_code", statusCode)
-			return err
-		}
-	}
-}
-
-func getCarrier(request engine.Request) opentracing.HTTPHeadersCarrier {
-	original := request.Header()
-	copy := make(http.Header)
-	for _, key := range original.Keys() {
-		value := original.Get(key)
-		copy.Set(key, value)
-	}
-	return opentracing.HTTPHeadersCarrier(copy)
 }

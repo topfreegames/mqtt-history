@@ -17,6 +17,8 @@ import (
 	"github.com/topfreegames/mqtt-history/models"
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -36,62 +38,14 @@ type MongoMessage struct {
 	Metadata       bson.M      `json:"metadata" bson:"metadata"`
 }
 
-// GetMessagesV2 returns messages stored in MongoDB by topic
-// It returns the MessageV2 model that is stored in MongoDB
-
-func GetMessagesV2(ctx context.Context, topic string, from int64, limit int64, collection string) []*models.MessageV2 {
-	return GetMessagesV2WithParameter(ctx, topic, from, limit, collection, false)
-}
-
-func GetMessagesV2WithParameter(ctx context.Context, topic string, from int64, limit int64, collection string, isBlocked bool) []*models.MessageV2 {
-	rawResults := make([]MongoMessage, 0)
-
-	callback := func(coll *mongo.Collection) error {
-		query := bson.M{
-			"topic": topic,
-			"timestamp": bson.M{
-				"$lte": from, // less than or equal
-			},
-			"blocked": isBlocked,
-		}
-
-		sort := bson.D{
-			{"topic", 1},
-			{"timestamp", -1},
-		}
-
-		opts := options.Find()
-		opts.SetSort(sort)
-		opts.SetLimit(limit)
-
-		cursor, err := coll.Find(ctx, query, opts)
-		if err != nil {
-			return err
-		}
-
-		return cursor.All(ctx, &rawResults)
-	}
-
-	// retrieve the collection data
-	err := GetCollection(collection, callback)
-	if err != nil {
-		logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
-		return []*models.MessageV2{}
-	}
-
-	// convert the raw results to the MessageV2 model
-	searchResults := make([]*models.MessageV2, len(rawResults))
-
-	for i := 0; i < len(rawResults); i++ {
-		searchResults[i], err = convertRawMessageToModelMessage(rawResults[i])
-
-		if err != nil {
-			logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
-			return []*models.MessageV2{}
-		}
-	}
-
-	return searchResults
+type QueryParameters struct {
+	Collection string
+	Topic      string
+	From       int64
+	To         int64
+	Limit      int64
+	PlayerID   string
+	IsBlocked  bool
 }
 
 // GetMessages returns messages stored in MongoDB by topic
@@ -99,8 +53,10 @@ func GetMessagesV2WithParameter(ctx context.Context, topic string, from int64, l
 // the MessageV2 model into the Message one for retrocompatibility
 // Rhe main difference being that the payload field is now referred to as "original_payload" and
 // is a JSON object, not a string, and also the timestamp is int64 seconds since Unix epoch, not an ISODate
-func GetMessages(ctx context.Context, topic string, from int64, limit int64, collection string) []*models.Message {
-	searchResults := GetMessagesV2(ctx, topic, from, limit, collection)
+func GetMessages(ctx context.Context, queryParameters QueryParameters) []*models.Message {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "get_messages")
+	defer span.Finish()
+	searchResults := GetMessagesV2(ctx, queryParameters)
 	messages := make([]*models.Message, 0)
 	for _, result := range searchResults {
 		payload := result.Payload
@@ -110,7 +66,7 @@ func GetMessages(ctx context.Context, topic string, from int64, limit int64, col
 		message := &models.Message{
 			Timestamp: time.Unix(result.Timestamp, 0),
 			Payload:   finalStr,
-			Topic:     topic,
+			Topic:     queryParameters.Topic,
 		}
 		messages = append(messages, message)
 	}
@@ -170,84 +126,127 @@ func convertPlayerIdToString(playerID interface{}) (string, error) {
 	return "", fmt.Errorf("error converting player id to float64 or string. player id raw value: %s", playerID)
 }
 
-func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, topic string, from int64, to int64, limit int64,
-	collection string, isBlocked bool, playerId string) []*models.MessageV2 {
-	rawResults := make([]MongoMessage, 0)
+func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameters QueryParameters) []*models.MessageV2 {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "get_messages_player_support_v2_with_parameter")
+	defer span.Finish()
 
-	callback := func(coll *mongo.Collection) error {
-		query := bson.M{
-			"timestamp": bson.M{
-				"$gte": from, //greather than or equal
-				"$lte": to,   // less than or equal
-			},
-			"player_id": playerId,
-			"blocked":   isBlocked,
-			"topic":     topic,
-		}
-		sort := bson.D{
-			{"topic", 1},
-			{"timestamp", -1},
-		}
-
-		if topic == "" {
-			query = bson.M{
-				"timestamp": bson.M{
-					"$gte": from,
-					"$lte": to,
-				},
-				"player_id": playerId,
-				"blocked":   isBlocked,
-			}
-			sort = bson.D{
-				{"topic", 1},
-				{"timestamp", -1},
-			}
-		}
-
-		if playerId == "" {
-			query = bson.M{
-				"timestamp": bson.M{
-					"$gte": from,
-					"$lte": to,
-				},
-				"topic":   topic,
-				"blocked": isBlocked,
-			}
-			sort = bson.D{
-				{"topic", 1},
-				{"timestamp", -1},
-			}
-		}
-
-		opts := options.Find()
-		opts.SetSort(sort)
-		opts.SetLimit(limit)
-
-		cursor, err := coll.Find(ctx, query, opts)
-		if err != nil {
-			return err
-		}
-
-		return cursor.All(ctx, &rawResults)
-	}
-	// retrieve the collection data
-	err := GetCollection(collection, callback)
+	mongoCollection, err := GetCollection(ctx, queryParameters.Collection)
 	if err != nil {
+		span.SetTag("error", true)
+		span.LogFields(
+			log.Event("error"),
+			log.Message("Error getting collection from MongoDB"),
+			log.Error(err),
+		)
+		logger.Logger.Warningf("Error getting collection from MongoDB: %s", err.Error())
+		return []*models.MessageV2{}
+	}
+
+	rawResults, err := getMessagesPlayerSupportFromCollection(ctx, queryParameters, mongoCollection)
+	if err != nil {
+		span.SetTag("error", true)
+		span.LogFields(
+			log.Event("error"),
+			log.Message("Error getting messages from MongoDB"),
+			log.Error(err),
+		)
 		logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
 		return []*models.MessageV2{}
 	}
 
 	// convert the raw results to the MessageV2 model
 	searchResults := make([]*models.MessageV2, len(rawResults))
-
 	for i := 0; i < len(rawResults); i++ {
 		searchResults[i], err = convertRawMessageToModelMessage(rawResults[i])
 
 		if err != nil {
-			logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
+			span.SetTag("error", true)
+			span.LogFields(
+				log.Event("error"),
+				log.Message("Error converting messages from MongoDB"),
+				log.Error(err),
+			)
+			logger.Logger.Warningf("Error converting messages from MongoDB: %s", err.Error())
 			return []*models.MessageV2{}
 		}
 	}
 
 	return searchResults
+}
+
+func getMessagesPlayerSupportFromCollection(
+	ctx context.Context,
+	queryParameters QueryParameters,
+	mongoCollection *mongo.Collection,
+) ([]MongoMessage, error) {
+	query := resolveQuery(queryParameters)
+	sort := bson.D{
+		{"topic", 1},
+		{"timestamp", -1},
+	}
+
+	statement := extractStatementForTrace(query, sort, queryParameters.Limit)
+	span, ctx := opentracing.StartSpanFromContext(
+		ctx,
+		"get_messages_player_support_from_collection",
+		opentracing.Tags{
+			"db.statement": statement,
+			"db.type":      "mongo",
+		},
+	)
+	defer span.Finish()
+
+	opts := options.Find()
+	opts.SetSort(sort)
+	opts.SetLimit(queryParameters.Limit)
+
+	cursor, err := mongoCollection.Find(ctx, query, opts)
+	if err != nil {
+		span.SetTag("error", true)
+		return nil, err
+	}
+
+	rawResults := make([]MongoMessage, 0)
+	if err = cursor.All(ctx, &rawResults); err != nil {
+		span.SetTag("error", true)
+		return nil, err
+	}
+
+	return rawResults, nil
+}
+
+func resolveQuery(queryParameters QueryParameters) bson.M {
+	query := bson.M{
+		"timestamp": bson.M{
+			"$gte": queryParameters.From,
+			"$lte": queryParameters.To,
+		},
+		"blocked": queryParameters.IsBlocked,
+	}
+
+	if queryParameters.Topic != "" {
+		query["topic"] = queryParameters.Topic
+	}
+
+	if queryParameters.PlayerID != "" {
+		query["player_id"] = queryParameters.PlayerID
+	}
+
+	return query
+}
+
+func extractStatementForTrace(query bson.M, sort bson.D, limit int64) string {
+	statementByteArray, err := bson.MarshalExtJSON(query, true, true)
+	if err == nil {
+		statementByteArray, _ = bson.MarshalExtJSONAppend(
+			statementByteArray,
+			bson.D{
+				{"sort", sort},
+				{"limit", limit},
+			},
+			true,
+			true,
+		)
+	}
+	return string(statementByteArray)
 }

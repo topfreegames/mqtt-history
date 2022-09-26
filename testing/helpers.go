@@ -81,8 +81,11 @@ func AuthorizeTestUserInTopics(ctx context.Context, topics []string) error {
 		return err
 	}
 
-	err := mongoclient.GetCollection("mqtt_acl", insertAuthCallback)
-	return err
+	mongoCollection, err := mongoclient.GetCollection(ctx, "mqtt_acl")
+	if err != nil {
+		return err
+	}
+	return insertAuthCallback(mongoCollection)
 }
 
 func InsertMongoMessages(ctx context.Context, topics []string) error {
@@ -117,6 +120,9 @@ func InsertMongoMessagesWithParameters(ctx context.Context, topics []string, blo
 	}
 
 	messagesCollection := "messages"
-	err := mongoclient.GetCollection(messagesCollection, insertMessagesCallback)
-	return err
+	mongoCollection, err := mongoclient.GetCollection(ctx, messagesCollection)
+	if err != nil {
+		return nil
+	}
+	return insertMessagesCallback(mongoCollection)
 }

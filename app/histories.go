@@ -36,7 +36,15 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			collection := app.Defaults.MongoMessagesCollection
 
 			for _, topic := range authorizedTopics {
-				topicMessages := mongoclient.GetMessages(c, topic, from, limit, collection)
+				topicMessages := mongoclient.GetMessages(
+					c,
+					mongoclient.QueryParameters{
+						Topic:      topic,
+						From:       from,
+						Limit:      limit,
+						Collection: collection,
+					},
+				)
 				messages = append(messages, topicMessages...)
 			}
 			return c.JSON(http.StatusOK, messages)

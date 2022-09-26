@@ -82,7 +82,11 @@ func findAuthorizedTopics(ctx context.Context, username string, topics []string)
 		return cursor.All(ctx, &searchResults)
 	}
 	search := func() error {
-		return mongoclient.GetCollection("mqtt_acl", query)
+		mongoCollection, err := mongoclient.GetCollection(ctx, "mqtt_acl")
+		if err != nil {
+			return err
+		}
+		return query(mongoCollection)
 	}
 	err := search()
 	return searchResults, err

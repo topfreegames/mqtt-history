@@ -36,7 +36,18 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
-		messages = mongoclient.GetMessagesPlayerSupportV2WithParameter(c, topic, from, to, limit, collection, isBlocked, playerId)
+		messages = mongoclient.GetMessagesPlayerSupportV2WithParameter(
+			c,
+			mongoclient.QueryParameters{
+				Topic:      topic,
+				From:       from,
+				To:         to,
+				Limit:      limit,
+				Collection: collection,
+				IsBlocked:  isBlocked,
+				PlayerID:   playerId,
+			},
+		)
 
 		return c.JSON(http.StatusOK, messages)
 	}

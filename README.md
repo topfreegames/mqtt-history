@@ -42,7 +42,7 @@ Make sure you have Go installed on your machine.
 
 You also need to have access to running instances of Cassandra and Mongo.
 
-## Running the application
+### Running the application
 
 If you want to run the application locally you can do so by running
 
@@ -57,7 +57,7 @@ You may need to change the configurations to point to your MQTT, Cassandra
 and Mongo servers, or you can use the provided containers, they can be run
 by executing `make run-containers`
 
-## Running the tests
+### Running the tests
 
 The project is integrated with Github Actions and uses docker to run the needed services.
 
@@ -91,3 +91,22 @@ httpAuth:
       username: user
       password: pass
 ```
+## Observability
+
+### Logs
+
+There is a middleware using the [zap](https://github.com/uber-go/zap) package to log requests with the JSON zap encoder.
+
+All other pieces of code use the [op](https://github.com/op/go-logging) package with a custom format.
+
+⚠️ Only logs formatted as JSON are usually exported to a logging platform, i.e., only the aforementioned middleware is logging correctly and the team should fix this issue.
+
+### Traces
+
+OpenTracing is used to report traces. The client implementation used is Jaeger's.
+
+⚠️ OpenTracing is deprecated, as well as Jaeger's client package. That is, the team should replace OpenTracing with OpenTelemetry and Jaeger's client package with OpenTelemetry's agnostic client package.
+
+## Metrics
+
+Metrics are exported using [Datadog's statsd](https://github.com/DataDog/datadog-go) client package.

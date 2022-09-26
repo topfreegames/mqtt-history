@@ -163,7 +163,6 @@ func (app *App) configureJaeger() {
 			cfg.Sampler.Type = jaeger.SamplerTypeProbabilistic
 		}
 	}
-	logger.Logger.Info("Jaeger Config: ", cfg)
 	if _, err := cfg.InitGlobalTracer(""); err != nil {
 		logger.Logger.Error("Failed to initialize Jaeger.", err)
 	} else {
@@ -208,7 +207,6 @@ func (app *App) configureApplication() {
 	a.Use(NewLoggerMiddleware(zap.New(
 		zap.NewJSONEncoder(),
 	)).Serve)
-	a.Use(NewJaegerMiddleware())
 	a.Use(NewSentryMiddleware().Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)

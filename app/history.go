@@ -30,7 +30,15 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 
 		if app.Defaults.MongoEnabled {
 			collection := app.Defaults.MongoMessagesCollection
-			messages := mongoclient.GetMessages(c, topic, from, limit, collection)
+			messages := mongoclient.GetMessages(
+				c,
+				mongoclient.QueryParameters{
+					Topic:      topic,
+					From:       from,
+					Limit:      limit,
+					Collection: collection,
+				},
+			)
 			return c.JSON(http.StatusOK, messages)
 		}
 

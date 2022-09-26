@@ -176,7 +176,10 @@ func TestHistoriesHandler(t *testing.T) {
 					return err
 				}
 
-				err := mongoclient.GetCollection("mqtt_acl", query)
+				mongoCollection, err := mongoclient.GetCollection(ctx, "mqtt_acl")
+				Expect(err).To(BeNil())
+
+				err = query(mongoCollection)
 				Expect(err).To(BeNil())
 
 				testMessage := models.Message{

@@ -9,6 +9,8 @@ package mongoclient
 
 import (
 	"context"
+	netUrl "net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,24 +24,42 @@ import (
 
 var (
 	client   *mongo.Client
+	user     string
 	database string
 	once     sync.Once
 )
 
-func mongoSession() (*mongo.Client, error) {
+func mongoSession(ctx context.Context) (*mongo.Client, error) {
 	var err error
 
 	once.Do(func() {
 		config := viper.GetViper()
 		url := config.GetString("mongo.host")
 		database = config.GetString("mongo.database")
+		config.SetDefault("mongo.connectionTimeout", 10)
+		connectionTimeout := time.Duration(config.GetInt("mongo.connectionTimeout")) * time.Second
 
-		const defaultTimeout = 10
-		ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout*time.Second)
-		defer cancel()
+		var urlStruct *netUrl.URL
+		urlStruct, err = netUrl.Parse(url)
+		if err != nil {
+			logger.Logger.Error("Invalid connection URL for MongoDB", err)
+		}
+		user = urlStruct.User.Username()
 
-		logger.Logger.Infof("Connecting to MongoDB at '%s'", url)
-		client, err = mongo.Connect(ctx, options.Client().ApplyURI(url))
+		// Avoid logging password
+		urlToLog := url
+		pass, isPasswordSet := urlStruct.User.Password()
+		if isPasswordSet {
+			urlToLog = strings.Replace(urlToLog, pass, "<hidden>", -1)
+		}
+		logger.Logger.Infof("Connecting to MongoDB at '%s'", urlToLog)
+
+		client, err = mongo.Connect(
+			ctx,
+			options.
+				Client().
+				ApplyURI(url).
+				SetConnectTimeout(connectionTimeout))
 	})
 
 	if err != nil {
@@ -49,10 +69,10 @@ func mongoSession() (*mongo.Client, error) {
 }
 
 // GetCollection returns a collection from the database
-func GetCollection(collection string, s func(collection *mongo.Collection) error) error {
-	mongoDB, err := mongoSession()
+func GetCollection(ctx context.Context, collection string) (*mongo.Collection, error) {
+	mongoDB, err := mongoSession(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// staleness: check how old the data is before reading from Secondary replicas
 	secondaryPreferredOpts := readpref.WithMaxStaleness(90 * time.Second)
@@ -61,6 +81,5 @@ func GetCollection(collection string, s func(collection *mongo.Collection) error
 	dbOpts := options.Database().
 		SetReadPreference(secondaryPreferred)
 
-	c := mongoDB.Database(database, dbOpts).Collection(collection)
-	return s(c)
+	return mongoDB.Database(database, dbOpts).Collection(collection), nil
 }

@@ -33,7 +33,16 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
-		messages = mongoclient.GetMessagesV2WithParameter(c, topic, from, limit, collection, isBlocked)
+		messages = mongoclient.GetMessagesV2WithParameter(
+			c,
+			mongoclient.QueryParameters{
+				Topic:      topic,
+				From:       from,
+				Limit:      limit,
+				Collection: collection,
+				IsBlocked:  isBlocked,
+			},
+		)
 
 		if len(messages) > 0 {
 			gameId := messages[0].GameId
