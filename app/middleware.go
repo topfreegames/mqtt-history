@@ -73,9 +73,11 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		var status int
 		var latency time.Duration
 		var startTime, endTime time.Time
+		var caller string
 
 		path = c.Path()
 		method = c.Request().Method()
+		caller = c.Request().RealIP()
 
 		startTime = time.Now()
 
@@ -102,6 +104,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			zap.String("ip", ip),
 			zap.String("method", method),
 			zap.String("path", path),
+			zap.String("caller:%s", caller),
 		)
 
 		//request failed
