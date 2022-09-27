@@ -73,7 +73,6 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		var status int
 		var latency time.Duration
 		var startTime, endTime time.Time
-		// var caller interface{}
 
 		path = c.Path()
 		method = c.Request().Method()
