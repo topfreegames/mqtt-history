@@ -73,15 +73,20 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		var status int
 		var latency time.Duration
 		var startTime, endTime time.Time
-		var caller string
+		// var caller interface{}
 
 		path = c.Path()
 		method = c.Request().Method()
-		caller = c.Request().RealIP()
 
 		startTime = time.Now()
 
+		metricTagMap := make(map[string]interface{})
+		c.Set("metricTagsMap", metricTagMap)
+
 		result := next(c)
+
+		caller := c.Get("metricTagsMap")
+		caller = caller.(map[string]interface{})["gameID"]
 
 		//no time.Since in order to format it well after
 		endTime = time.Now()
@@ -104,7 +109,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			zap.String("ip", ip),
 			zap.String("method", method),
 			zap.String("path", path),
-			zap.String("caller:%s", caller),
+			zap.String("caller", fmt.Sprintf("%v", caller)),
 		)
 
 		//request failed
@@ -120,7 +125,9 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		//Everything went ok
 		reqLog.Info("Request successful.")
+
 		return result
+
 	}
 }
 
