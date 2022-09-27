@@ -38,6 +38,13 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 		collection := app.Defaults.MongoMessagesCollection
 		messages = mongoclient.GetMessagesPlayerSupportV2WithParameter(c, topic, from, to, limit, collection, isBlocked, playerId)
 
+		gameId := messages[0].GameId
+		metricTagMap := c.Get("metricTagsMap").(map[string]interface{})
+		if metricTagMap != nil {
+			metricTagMap["gameID"] = gameId
+			logger.Logger.Debugf("provided gameID: %s", metricTagMap["gameID"])
+		}
+
 		return c.JSON(http.StatusOK, messages)
 	}
 }
