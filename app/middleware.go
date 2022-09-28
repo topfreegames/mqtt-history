@@ -127,7 +127,6 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		//Everything went ok
 		reqLog.Info("Request successful.")
-
 		return result
 
 	}
@@ -192,7 +191,6 @@ func (nr *NewRelicMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			txn.NoticeError(err)
 			return err
 		}
-
 		return nil
 	}
 }
@@ -228,9 +226,7 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 			fmt.Sprintf("status:%d", status),
 			fmt.Sprintf("gameID:%v", gameID),
 		}
-
 		responseTimeMiddleware.DDStatsD.Timing(metricName, timeUsed, tags...)
-
 		return result
 	}
 }
@@ -302,7 +298,6 @@ func NewJaegerMiddleware() echo.MiddlewareFunc {
 			response := c.Response()
 			statusCode := response.Status()
 			span.SetTag("http.status_code", statusCode)
-
 			return err
 		}
 	}
