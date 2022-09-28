@@ -35,11 +35,11 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 		collection := app.Defaults.MongoMessagesCollection
 		messages = mongoclient.GetMessagesV2WithParameter(c, topic, from, limit, collection, isBlocked)
 
-		gameId := messages[0].GameId
-		metricTagMap := c.Get("metricTagsMap").(map[string]interface{})
-		if metricTagMap != nil {
-			metricTagMap["gameID"] = gameId
-			logger.Logger.Debugf("provided gameID: %s", metricTagMap["gameID"])
+		if len(messages) > 0 {
+			gameId := messages[0].GameId
+			if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+				metricTagsMap["gameID"] = gameId
+			}
 		}
 
 		return c.JSON(http.StatusOK, messages)
