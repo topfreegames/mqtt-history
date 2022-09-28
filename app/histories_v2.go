@@ -41,10 +41,8 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 		}
 
 		gameId := messages[0].GameId
-		metricTagMap := c.Get("metricTagsMap").(map[string]interface{})
-		if metricTagMap != nil {
-			metricTagMap["gameID"] = gameId
-			logger.Logger.Debugf("provided gameID: %s", metricTagMap["gameID"])
+		if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+				metricTagsMap["gameID"] = gameId
 		}
 
 		return c.JSON(http.StatusOK, messages)
