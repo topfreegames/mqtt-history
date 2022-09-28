@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo/engine"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
+	"github.com/topfreegames/extensions/middleware"
 	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/uber-go/zap"
 )
@@ -73,6 +74,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		var status int
 		var latency time.Duration
 		var startTime, endTime time.Time
+		var gameID interface{}
 
 		path = c.Path()
 		method = c.Request().Method()
@@ -85,11 +87,8 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		result := next(c)
 
 		if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
-			gameID = metricTagsMap["gameID"].(string)
+			gameID = metricTagsMap["gameID"]
 		}
-
-		// gameID := c.Get("metricTagsMap")
-		// gameID = gameID.(map[string]interface{})["gameID"]
 
 		//no time.Since in order to format it well after
 		endTime = time.Now()
@@ -112,7 +111,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			zap.String("ip", ip),
 			zap.String("method", method),
 			zap.String("path", path),
-			zap.String("gameID", gameID),
+			zap.String("gameID", fmt.Sprintf("%v", gameID)),
 		)
 
 		//request failed
@@ -195,6 +194,51 @@ func (nr *NewRelicMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		return nil
+	}
+}
+
+const metricName = "response_time_milliseconds"
+
+// ResponseTimeMetricsMiddleware struct encapsulating DDStatsD
+type ResponseTimeMetricsMiddleware struct {
+	DDStatsD *middleware.DogStatsD
+}
+
+//ResponseTimeMetricsMiddleware is a middleware to measure the response time
+//of a route and send it do StatsD
+func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+
+		startTime := time.Now()
+		result := next(c)
+		status := c.Response().Status()
+		route := c.Path()
+		method := c.Request().Method()
+
+		var gameID interface{}
+		if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+			gameID = metricTagsMap["gameID"]
+		}
+
+		timeUsed := time.Since(startTime)
+
+		tags := []string{
+			fmt.Sprintf("route:%s", route),
+			fmt.Sprintf("method:%s", method),
+			fmt.Sprintf("status:%d", status),
+			fmt.Sprintf("gameID:%v", gameID),
+		}
+
+		responseTimeMiddleware.DDStatsD.Timing(metricName, timeUsed, tags...)
+
+		return result
+	}
+}
+
+//ResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware
+func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD) *ResponseTimeMetricsMiddleware {
+	return &ResponseTimeMetricsMiddleware{
+		DDStatsD: ddStatsD,
 	}
 }
 
