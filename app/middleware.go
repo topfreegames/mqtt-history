@@ -69,7 +69,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			zap.String("source", "request"),
 		)
 
-		//all except latency to string
+		// all except latency to string
 		var ip, method, path string
 		var status int
 		var latency time.Duration
@@ -90,7 +90,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			gameID = metricTagsMap["gameID"]
 		}
 
-		//no time.Since in order to format it well after
+		// no time.Since in order to format it well after
 		endTime = time.Now()
 		latency = endTime.Sub(startTime)
 
@@ -204,8 +204,8 @@ type ResponseTimeMetricsMiddleware struct {
 	DDStatsD *middleware.DogStatsD
 }
 
-//ResponseTimeMetricsMiddleware is a middleware to measure the response time
-//of a route and send it do StatsD
+// ResponseTimeMetricsMiddleware is a middleware to measure the response time
+// of a route and send it do StatsD
 func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
@@ -235,7 +235,7 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 	}
 }
 
-//ResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware
+// ResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware
 func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD) *ResponseTimeMetricsMiddleware {
 	return &ResponseTimeMetricsMiddleware{
 		DDStatsD: ddStatsD,
