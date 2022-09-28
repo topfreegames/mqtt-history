@@ -79,13 +79,17 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 
 		startTime = time.Now()
 
-		metricTagMap := make(map[string]interface{})
-		c.Set("metricTagsMap", metricTagMap)
+		metricTagsMap := make(map[string]interface{})
+		c.Set("metricTagsMap", metricTagsMap)
 
 		result := next(c)
 
-		caller := c.Get("metricTagsMap")
-		caller = caller.(map[string]interface{})["gameID"]
+		if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+			gameID = metricTagsMap["gameID"].(string)
+		}
+
+		// gameID := c.Get("metricTagsMap")
+		// gameID = gameID.(map[string]interface{})["gameID"]
 
 		//no time.Since in order to format it well after
 		endTime = time.Now()
@@ -108,7 +112,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			zap.String("ip", ip),
 			zap.String("method", method),
 			zap.String("path", path),
-			zap.String("caller", fmt.Sprintf("%v", caller)),
+			zap.String("gameID", gameID),
 		)
 
 		//request failed
