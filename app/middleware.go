@@ -70,11 +70,10 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		)
 
 		// all except latency to string
-		var ip, method, path string
+		var ip, method, path, gameID string
 		var status int
 		var latency time.Duration
 		var startTime, endTime time.Time
-		var gameID interface{}
 
 		path = c.Path()
 		method = c.Request().Method()
@@ -87,7 +86,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 		result := next(c)
 
 		if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
-			gameID = metricTagsMap["gameID"]
+			gameID, _ = metricTagsMap["gameID"].(string)
 		}
 
 		// no time.Since in order to format it well after
@@ -111,7 +110,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			zap.String("ip", ip),
 			zap.String("method", method),
 			zap.String("path", path),
-			zap.String("gameID", fmt.Sprintf("%v", gameID)),
+			zap.String("gameID", gameID),
 		)
 
 		//request failed
@@ -213,9 +212,9 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 		route := c.Path()
 		method := c.Request().Method()
 
-		var gameID interface{}
+		var gameID string
 		if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
-			gameID = metricTagsMap["gameID"]
+			gameID, _ = metricTagsMap["gameID"].(string)
 		}
 
 		timeUsed := time.Since(startTime)
