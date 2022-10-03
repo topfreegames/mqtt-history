@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -190,8 +191,10 @@ func getMessagesPlayerSupportFromCollection(
 		ctx,
 		"get_messages_player_support_from_collection",
 		opentracing.Tags{
-			"db.statement": statement,
-			"db.type":      "mongo",
+			string(ext.DBStatement): statement,
+			string(ext.DBType):      "mongo",
+			string(ext.DBInstance):  database,
+			string(ext.DBUser):      user,
 		},
 	)
 	defer span.Finish()

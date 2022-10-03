@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/models"
@@ -82,11 +83,10 @@ func getMessagesFromCollection(
 		ctx,
 		"get_messages_from_collection",
 		opentracing.Tags{
-			"span.kind":    "client",
-			"db.statement": statement,
-			"db.type":      "mongo",
-			"db.instance":  database,
-			"db.user":      user,
+			string(ext.DBStatement): statement,
+			string(ext.DBType):      "mongo",
+			string(ext.DBInstance):  database,
+			string(ext.DBUser):      user,
 		},
 	)
 	defer span.Finish()

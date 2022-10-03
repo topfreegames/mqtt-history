@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/topfreegames/mqtt-history/mongoclient"
 
@@ -30,22 +31,35 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
 
-		// retrieve messages
 		messages := make([]*models.Message, 0)
 		if app.Defaults.MongoEnabled {
 			collection := app.Defaults.MongoMessagesCollection
-
+			var wg sync.WaitGroup
+			var mu sync.Mutex
+			// guarantees ordering in responses payload
+			topicsMessagesMap := make(map[string][]*models.Message, len(authorizedTopics))
 			for _, topic := range authorizedTopics {
-				topicMessages := mongoclient.GetMessages(
-					c,
-					mongoclient.QueryParameters{
-						Topic:      topic,
-						From:       from,
-						Limit:      limit,
-						Collection: collection,
-					},
-				)
-				messages = append(messages, topicMessages...)
+				wg.Add(1)
+				go func(topicsMessagesMap map[string][]*models.Message, topic string) {
+					topicMessages := mongoclient.GetMessages(
+						c,
+						mongoclient.QueryParameters{
+							Topic:      topic,
+							From:       from,
+							Limit:      limit,
+							Collection: collection,
+						},
+					)
+					mu.Lock()
+					topicsMessagesMap[topic] = topicMessages
+					mu.Unlock()
+					wg.Done()
+				}(topicsMessagesMap, topic)
+			}
+			wg.Wait()
+			// guarantees ordering in responses payload
+			for _, topic := range authorizedTopics {
+				messages = append(messages, topicsMessagesMap[topic]...)
 			}
 			return c.JSON(http.StatusOK, messages)
 		}
