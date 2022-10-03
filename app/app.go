@@ -26,7 +26,6 @@ import (
 	"github.com/topfreegames/mqtt-history/models"
 	"github.com/uber-go/zap"
 
-	"github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/config"
 )
 
@@ -158,9 +157,6 @@ func (app *App) configureJaeger() {
 	if !cfg.Disabled {
 		if cfg.ServiceName == "" {
 			cfg.ServiceName = "mqtt-history"
-		}
-		if cfg.Sampler.Type == "" {
-			cfg.Sampler.Type = jaeger.SamplerTypeProbabilistic
 		}
 	}
 	if _, err := cfg.InitGlobalTracer(""); err != nil {

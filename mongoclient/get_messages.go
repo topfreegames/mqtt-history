@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -59,19 +60,22 @@ func GetMessages(ctx context.Context, queryParameters QueryParameters) []*models
 	searchResults := GetMessagesV2(ctx, queryParameters)
 	messages := make([]*models.Message, 0)
 	for _, result := range searchResults {
-		payload := result.Payload
-		bytes, _ := json.Marshal(payload)
-
-		finalStr := string(bytes)
-		message := &models.Message{
-			Timestamp: time.Unix(result.Timestamp, 0),
-			Payload:   finalStr,
-			Topic:     queryParameters.Topic,
-		}
-		messages = append(messages, message)
+		messages = append(messages, ConvertMessageV2ToMessage(result))
 	}
 
 	return messages
+}
+
+func ConvertMessageV2ToMessage(messagev2 *models.MessageV2) *models.Message {
+	payload := messagev2.Payload
+	bytes, _ := json.Marshal(payload)
+
+	finalStr := string(bytes)
+	return &models.Message{
+		Timestamp: time.Unix(messagev2.Timestamp, 0),
+		Payload:   finalStr,
+		Topic:     messagev2.Topic,
+	}
 }
 
 func convertRawMessageToModelMessage(rawMessage MongoMessage) (*models.MessageV2, error) {
@@ -190,8 +194,10 @@ func getMessagesPlayerSupportFromCollection(
 		ctx,
 		"get_messages_player_support_from_collection",
 		opentracing.Tags{
-			"db.statement": statement,
-			"db.type":      "mongo",
+			string(ext.DBStatement): statement,
+			string(ext.DBType):      "mongo",
+			string(ext.DBInstance):  database,
+			string(ext.DBUser):      user,
 		},
 	)
 	defer span.Finish()
