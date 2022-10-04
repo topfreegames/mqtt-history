@@ -9,6 +9,7 @@ package mongoclient
 
 import (
 	"context"
+	"fmt"
 	netUrl "net/url"
 	"strings"
 	"sync"
@@ -17,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
 	"github.com/spf13/viper"
-	"github.com/topfreegames/mqtt-history/logger"
+	"github.com/uber-go/zap"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -27,7 +28,16 @@ var (
 	user     string
 	database string
 	once     sync.Once
+	logger   zap.Logger
 )
+
+func init() {
+	logger = zap.New(zap.NewJSONEncoder())
+}
+
+func SetLogger(log zap.Logger) {
+	logger = log
+}
 
 func mongoSession(ctx context.Context) (*mongo.Client, error) {
 	var err error
@@ -42,7 +52,7 @@ func mongoSession(ctx context.Context) (*mongo.Client, error) {
 		var urlStruct *netUrl.URL
 		urlStruct, err = netUrl.Parse(url)
 		if err != nil {
-			logger.Logger.Error("Invalid connection URL for MongoDB", err)
+			panic(fmt.Errorf("Invalid connection URL for MongoDB: %w", err))
 		}
 		user = urlStruct.User.Username()
 
@@ -52,7 +62,7 @@ func mongoSession(ctx context.Context) (*mongo.Client, error) {
 		if isPasswordSet {
 			urlToLog = strings.Replace(urlToLog, pass, "<hidden>", -1)
 		}
-		logger.Logger.Infof("Connecting to MongoDB at '%s'", urlToLog)
+		logger.Info(fmt.Sprintf("Connecting to MongoDB at '%s'", urlToLog))
 
 		client, err = mongo.Connect(
 			ctx,

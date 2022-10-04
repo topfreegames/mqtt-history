@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/mongoclient"
+	"github.com/uber-go/zap"
 
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/models"
@@ -19,24 +19,30 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 		initialDateParamsFilter := c.QueryParam("initialDate")
 		from, err := transformDate(initialDateParamsFilter, true)
 		if err != nil {
-			logger.Logger.Warningf("Error: %s", err.Error())
+			app.Logger.Warn("Error getting initialDate parameter.", zap.Error(err))
 			return c.JSON(http.StatusUnprocessableEntity, "Error getting initialDate parameter.")
 		}
 
 		finalDateParamsFilter := c.QueryParam("finalDate")
 		to, err := transformDate(finalDateParamsFilter, false)
 		if err != nil {
-			logger.Logger.Warningf("Error: %s", err.Error())
+			app.Logger.Warn("Error getting finalDate parameter.", zap.Error(err))
 			return c.JSON(http.StatusUnprocessableEntity, "Error getting finalDate parameter.")
 		}
 
-		logger.Logger.Debugf(
-			"user %s is asking for history v2 for topic %s with date args from=%d to=%d and limit=%d",
-			userID, from, to, limit)
+		app.Logger.Debug(
+			"Request received",
+			zap.String("route", "HistoriesV2PlayerSupport"),
+			zap.String("user", userID),
+			zap.String("topic", topic),
+			zap.Int64("from", from),
+			zap.Int64("to", to),
+			zap.Int64("limit", limit),
+		)
 
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
-		messages = mongoclient.GetMessagesPlayerSupportV2WithParameter(
+		messages, err = mongoclient.GetMessagesPlayerSupportV2WithParameter(
 			c,
 			mongoclient.QueryParameters{
 				Topic:      topic,
@@ -48,6 +54,10 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 				PlayerID:   playerId,
 			},
 		)
+
+		if err != nil {
+			return err
+		}
 
 		return c.JSON(http.StatusOK, messages)
 	}

@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/topfreegames/mqtt-history/mongoclient"
+	"github.com/uber-go/zap"
 
 	"github.com/labstack/echo"
-	"github.com/topfreegames/mqtt-history/logger"
 )
 
 // HistoryHandler is the handler responsible for sending the rooms history to the player
@@ -20,9 +20,15 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			return err
 		}
 
-		logger.Logger.Debugf(
-			"user %s (authenticated=%v) is asking for history for topic %s with args from=%d and limit=%d",
-			userID, authenticated, topic, from, limit)
+		app.Logger.Debug(
+			"Request received",
+			zap.String("route", "History"),
+			zap.String("user", userID),
+			zap.Bool("authenticated", authenticated),
+			zap.String("topic", topic),
+			zap.Int64("from", from),
+			zap.Int64("limit", limit),
+		)
 
 		if !authenticated {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
@@ -30,7 +36,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 
 		if app.Defaults.MongoEnabled {
 			collection := app.Defaults.MongoMessagesCollection
-			messages := mongoclient.GetMessages(
+			messages, err := mongoclient.GetMessages(
 				c,
 				mongoclient.QueryParameters{
 					Topic:      topic,
@@ -39,16 +45,23 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 					Collection: collection,
 				},
 			)
+			if err != nil {
+				return err
+			}
 			return c.JSON(http.StatusOK, messages)
 		}
 
 		bucketQnt := app.Defaults.BucketQuantityOnSelect
 		currentBucket := app.Bucket.Get(from)
 
-		messages := selectFromBuckets(c.StdContext(),
+		messages, err := selectFromBuckets(c.StdContext(),
 			bucketQnt, int(limit), currentBucket,
 			topic,
 			app.Cassandra)
+
+		if err != nil {
+			return err
+		}
 
 		return c.JSON(http.StatusOK, messages)
 	}

@@ -41,7 +41,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			for _, topic := range authorizedTopics {
 				wg.Add(1)
 				go func(topicsMessagesMap map[string][]*models.Message, topic string) {
-					topicMessages := mongoclient.GetMessages(
+					topicMessages, er := mongoclient.GetMessages(
 						c,
 						mongoclient.QueryParameters{
 							Topic:      topic,
@@ -51,12 +51,19 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 						},
 					)
 					mu.Lock()
-					topicsMessagesMap[topic] = topicMessages
+					if er != nil {
+						err = er
+					} else {
+						topicsMessagesMap[topic] = topicMessages
+					}
 					mu.Unlock()
 					wg.Done()
 				}(topicsMessagesMap, topic)
 			}
 			wg.Wait()
+			if err != nil {
+				return err
+			}
 			// guarantees ordering in responses payload
 			for _, topic := range authorizedTopics {
 				messages = append(messages, topicsMessagesMap[topic]...)
@@ -68,8 +75,13 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		currentBucket := app.Bucket.Get(from)
 
 		for _, topic := range authorizedTopics {
-			topicMessages := selectFromBuckets(c.StdContext(), bucketQnt, int(limit), currentBucket, topic, app.Cassandra)
+			topicMessages, er := selectFromBuckets(c.StdContext(), bucketQnt, int(limit), currentBucket, topic, app.Cassandra)
+			err = er
 			messages = append(messages, topicMessages...)
+		}
+
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadGateway)
 		}
 
 		return c.JSON(http.StatusOK, messages)

@@ -2,11 +2,11 @@ package mongoclient
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,11 +15,11 @@ import (
 
 // GetMessagesV2 returns messages stored in MongoDB by topic
 // It returns the MessageV2 model that is stored in MongoDB
-func GetMessagesV2(ctx context.Context, queryParameters QueryParameters) []*models.MessageV2 {
+func GetMessagesV2(ctx context.Context, queryParameters QueryParameters) ([]*models.MessageV2, error) {
 	return GetMessagesV2WithParameter(ctx, queryParameters)
 }
 
-func GetMessagesV2WithParameter(ctx context.Context, queryParameters QueryParameters) []*models.MessageV2 {
+func GetMessagesV2WithParameter(ctx context.Context, queryParameters QueryParameters) ([]*models.MessageV2, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "get_messages_v2_with_parameter")
 	defer span.Finish()
 
@@ -31,14 +31,18 @@ func GetMessagesV2WithParameter(ctx context.Context, queryParameters QueryParame
 			log.Message("Error getting collection from MongoDB"),
 			log.Error(err),
 		)
-		logger.Logger.Warning("Error getting collection from MongoDB", err)
-		return []*models.MessageV2{}
+		return []*models.MessageV2{}, fmt.Errorf("Error getting messages from MongoDB: %w", err)
 	}
 
 	rawResults, err := getMessagesFromCollection(ctx, queryParameters, mongoCollection)
 	if err != nil {
-		logger.Logger.Warning("Error getting messages from MongoDB", err)
-		return []*models.MessageV2{}
+		span.SetTag("error", true)
+		span.LogFields(
+			log.Event("error"),
+			log.Message("Error getting messages from MongoDB"),
+			log.Error(err),
+		)
+		return []*models.MessageV2{}, fmt.Errorf("Error getting messages from MongoDB: %w", err)
 	}
 
 	// convert the raw results to the MessageV2 model
@@ -53,12 +57,11 @@ func GetMessagesV2WithParameter(ctx context.Context, queryParameters QueryParame
 				log.Message("Error converting messages from MongoDB to the program domain format"),
 				log.Error(err),
 			)
-			logger.Logger.Warningf("Error converting messages from MongoDB: %s", err.Error())
-			return []*models.MessageV2{}
+			return []*models.MessageV2{}, fmt.Errorf("Error converting messages from MongoDB: %w", err)
 		}
 	}
 
-	return searchResults
+	return searchResults, nil
 }
 
 func getMessagesFromCollection(

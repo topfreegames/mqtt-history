@@ -6,14 +6,13 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
-	"github.com/topfreegames/mqtt-history/logger"
 )
 
 func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64, int64, bool) {
 	userID := c.QueryParam("userid")
 	from, _ := strconv.ParseInt(c.QueryParam("from"), 10, 64)
 	limit, _ := strconv.ParseInt(c.QueryParam("limit"), 10, 64)
-	isBlocked, err := strconv.ParseBool(c.QueryParam("isBlocked"))
+	isBlocked, _ := strconv.ParseBool(c.QueryParam("isBlocked"))
 
 	if limit == 0 {
 		limit = defaultLimit
@@ -21,12 +20,6 @@ func ParseHistoryQueryParams(c echo.Context, defaultLimit int64) (string, int64,
 
 	if from == 0 {
 		from = time.Now().Unix()
-	}
-
-	if err != nil {
-		// If it returns error, it will assume the default behavior(e.g. isBlocked=false).
-		logger.Logger.Debugf("Assuming the default behavior: isBlocked=false. Message: %s", err.Error())
-		return userID, from, limit, false
 	}
 
 	return userID, from, limit, isBlocked

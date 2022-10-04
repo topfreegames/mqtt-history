@@ -12,8 +12,9 @@ func selectFromBuckets(
 	bucketQuantity, limit, currentBucket int,
 	topic string,
 	cassandra cassandra.DataStore,
-) []*models.Message {
+) ([]*models.Message, error) {
 	messages := []*models.Message{}
+	var err error
 
 	for i := 0; i < bucketQuantity && len(messages) < limit; i++ {
 		bucket := currentBucket - i
@@ -22,9 +23,10 @@ func selectFromBuckets(
 		}
 
 		queryLimit := limit - len(messages)
-		bucketMessages := cassandra.SelectMessagesInBucket(ctx, topic, bucket, queryLimit)
+		bucketMessages, er := cassandra.SelectMessagesInBucket(ctx, topic, bucket, queryLimit)
+		err = er
 		messages = append(messages, bucketMessages...)
 	}
 
-	return messages
+	return messages, err
 }

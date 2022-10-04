@@ -1,10 +1,11 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/mongoclient"
+	"github.com/uber-go/zap"
 
 	"github.com/labstack/echo"
 	"github.com/topfreegames/mqtt-history/models"
@@ -21,7 +22,15 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 			topics[i] = topicPrefix + "/" + topicSuffix
 		}
 
-		logger.Logger.Debugf("user %s is asking for histories v2 for topicPrefix %s with args topics=%s from=%d and limit=%d", userID, topicPrefix, topics, from, limit)
+		app.Logger.Debug(
+			"Request received",
+			zap.String("route", "HistoriesV2"),
+			zap.String("user", userID),
+			zap.String("topicPrefix", topicPrefix),
+			zap.String("topics", fmt.Sprint(topics)),
+			zap.Int64("from", from),
+			zap.Int64("limit", limit),
+		)
 		authenticated, authorizedTopics, err := IsAuthorized(c.StdContext(), app, userID, topics...)
 		if err != nil {
 			return err
@@ -36,7 +45,7 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 		collection := app.Defaults.MongoMessagesCollection
 
 		for _, topic := range authorizedTopics {
-			topicMessages := mongoclient.GetMessagesV2(
+			topicMessages, err := mongoclient.GetMessagesV2(
 				c,
 				mongoclient.QueryParameters{
 					Topic:      topic,
@@ -45,6 +54,9 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 					Collection: collection,
 				},
 			)
+			if err != nil {
+				return err
+			}
 			messages = append(messages, topicMessages...)
 		}
 

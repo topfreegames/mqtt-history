@@ -4,8 +4,7 @@ import (
 	"net/http"
 
 	"github.com/topfreegames/mqtt-history/mongoclient"
-
-	"github.com/topfreegames/mqtt-history/logger"
+	"github.com/uber-go/zap"
 
 	"github.com/topfreegames/mqtt-history/models"
 
@@ -23,9 +22,15 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 			return err
 		}
 
-		logger.Logger.Debugf(
-			"user %s (authenticated=%v) is asking for history v2 for topic %s with args from=%d and limit=%d",
-			userID, authenticated, topic, from, limit)
+		app.Logger.Debug(
+			"Request received",
+			zap.String("route", "HistoryV2"),
+			zap.String("user", userID),
+			zap.Bool("authenticated", authenticated),
+			zap.String("topic", topic),
+			zap.Int64("from", from),
+			zap.Int64("limit", limit),
+		)
 
 		if !authenticated {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
@@ -33,7 +38,7 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
-		messages = mongoclient.GetMessagesV2WithParameter(
+		messages, err = mongoclient.GetMessagesV2WithParameter(
 			c,
 			mongoclient.QueryParameters{
 				Topic:      topic,
@@ -43,6 +48,10 @@ func HistoryV2Handler(app *App) func(c echo.Context) error {
 				IsBlocked:  isBlocked,
 			},
 		)
+
+		if err != nil {
+			return err
+		}
 
 		if len(messages) > 0 {
 			gameId := messages[0].GameId

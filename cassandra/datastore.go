@@ -14,7 +14,7 @@ type DataStore interface {
 		ctx context.Context,
 		topic string,
 		bucket, limit int,
-	) []*models.Message
+	) ([]*models.Message, error)
 
 	InsertWithTTL(
 		ctx context.Context,
@@ -24,17 +24,10 @@ type DataStore interface {
 	) error
 }
 
-func (s *Store) exec(ctx context.Context, query string, params ...interface{}) []*models.Message {
-	messages := []*models.Message{}
+func (s *Store) exec(ctx context.Context, query string, params ...interface{}) (messages []*models.Message, err error) {
 	iter := s.DBSession.Query(query, params...).WithContext(ctx).Iter()
 	defer func() {
-		err := iter.Close()
-		if err != nil {
-			s.logger.Errorf("failed to execute query: %+v", map[string]string{
-				"query": query,
-				"error": err.Error(),
-			})
-		}
+		err = iter.Close()
 	}()
 
 	for {
@@ -50,7 +43,7 @@ func (s *Store) exec(ctx context.Context, query string, params ...interface{}) [
 		})
 	}
 
-	return messages
+	return messages, nil
 }
 
 // SelectMessagesInBucket gets at most limit messages on
@@ -59,7 +52,7 @@ func (s *Store) SelectMessagesInBucket(
 	ctx context.Context,
 	topic string,
 	bucket, limit int,
-) []*models.Message {
+) ([]*models.Message, error) {
 	query := fmt.Sprintf(`
 	SELECT payload, toTimestamp(id) as timestamp, topic
 	FROM messages 

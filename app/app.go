@@ -22,11 +22,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/echo"
 	"github.com/topfreegames/mqtt-history/cassandra"
-	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/models"
+	"github.com/topfreegames/mqtt-history/mongoclient"
 	"github.com/uber-go/zap"
 
-	"github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/config"
 )
 
@@ -45,19 +44,29 @@ type App struct {
 	Cassandra            cassandra.DataStore
 	Defaults             *models.Defaults
 	Bucket               *models.Bucket
+	Logger               zap.Logger
 }
 
 // GetApp creates an app given the parameters
 func GetApp(host string, port int, debug bool, configPath string) *App {
-	logger.SetupLogger(viper.GetString("logger.level"))
-	logger.Logger.Debug(
-		fmt.Sprintf("Starting app with host: %s, port: %d", host, port))
+	logLevel := zap.InfoLevel
+	err := logLevel.UnmarshalText([]byte(viper.GetString("logger.level")))
+	if err != nil {
+		panic(err)
+	}
+	logger := zap.New(zap.NewJSONEncoder(), logLevel)
+	logger.Debug(
+		"Starting app",
+		zap.String("host", host),
+		zap.Int("port", port),
+	)
 	app := &App{
 		Host:       host,
 		Port:       port,
 		Config:     viper.GetViper(),
 		ConfigPath: configPath,
 		Debug:      debug,
+		Logger:     logger,
 	}
 	app.Configure()
 	return app
@@ -85,6 +94,7 @@ func (app *App) configureBucket() {
 func (app *App) configureStorage() {
 	if app.Defaults.MongoEnabled {
 		app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
+		mongoclient.SetLogger(app.Logger)
 		return
 	}
 
@@ -105,18 +115,18 @@ func (app *App) configureDefaults() {
 }
 
 func (app *App) configureCassandra() {
-	logger.Logger.Infof("Connecting to Cassandra")
+	app.Logger.Info("Connecting to Cassandra")
 	cassandra, err := cassandra.GetCassandra(
-		logger.Logger,
+		app.Logger,
 		app.Config,
 		app.DDStatsD,
 	)
 	if err != nil {
-		logger.Logger.Error("Failed to initialize Cassandra.", zap.Error(err))
+		app.Logger.Error("Failed to initialize Cassandra.", zap.Error(err))
 		panic(fmt.Sprintf("Could not initialize Cassandra, err: %s", err))
 	}
 
-	logger.Logger.Info("Initialized Cassandra successfully.")
+	app.Logger.Info("Initialized Cassandra successfully.")
 	app.Cassandra = cassandra
 }
 
@@ -124,49 +134,50 @@ func (app *App) configureNewRelic() {
 	newRelicKey := app.Config.GetString("newrelic.key")
 	config := newrelic.NewConfig("mqtt-history", newRelicKey)
 	if newRelicKey == "" {
-		logger.Logger.Info("New Relic is not enabled..")
+		app.Logger.Info("New Relic is not enabled..")
 		config.Enabled = false
 	}
 	nr, err := newrelic.NewApplication(config)
 	if err != nil {
-		logger.Logger.Error("Failed to initialize New Relic.", zap.Error(err))
+		app.Logger.Error("Failed to initialize New Relic.", zap.Error(err))
 		panic(fmt.Sprintf("Could not initialize New Relic, err: %s", err))
 	}
 
 	app.NewRelic = nr
-	logger.Logger.Info("Initialized New Relic successfully.")
+	app.Logger.Info("Initialized New Relic successfully.")
 }
 
 func (app *App) configureStatsD() {
-	logger.Logger.Info("Starting DogStatsD..")
+	app.Logger.Info("Starting DogStatsD..")
 	ddstatsd, err := extnethttpmiddleware.NewDogStatsD(app.Config)
 	if err != nil {
-		logger.Logger.Error("Failed to initialize DogStatsD.", zap.Error(err))
+		app.Logger.Error("Failed to initialize DogStatsD.", zap.Error(err))
 		panic(fmt.Sprintf("Could not initialize DogStatsD, err: %s", err))
 	}
 	app.DDStatsD = ddstatsd
-	logger.Logger.Info("Initialized DogStatsD successfully.")
+	app.Logger.Info("Initialized DogStatsD successfully.")
 }
 
 func (app *App) configureJaeger() {
-	logger.Logger.Info("Initializing Jaeger Global Tracer...")
+	app.Logger.Info("Initializing Jaeger Global Tracer...")
 	cfg, err := config.FromEnv()
 	if err != nil {
-		logger.Logger.Error("Failed to load Jaeger config from env", err)
+		app.Logger.Error("Failed to load Jaeger config from env", zap.Error(err))
 		return
 	}
 	if !cfg.Disabled {
 		if cfg.ServiceName == "" {
 			cfg.ServiceName = "mqtt-history"
 		}
-		if cfg.Sampler.Type == "" {
-			cfg.Sampler.Type = jaeger.SamplerTypeProbabilistic
-		}
 	}
-	if _, err := cfg.InitGlobalTracer(""); err != nil {
-		logger.Logger.Error("Failed to initialize Jaeger.", err)
+	var configOptions []config.Option
+	if cfg.Reporter.LogSpans {
+		configOptions = append(configOptions, config.Logger(WrapZapLogger(app.Logger)))
+	}
+	if _, err := cfg.InitGlobalTracer("", configOptions...); err != nil {
+		app.Logger.Error("Failed to initialize Jaeger.", zap.Error(err))
 	} else {
-		logger.Logger.Info("Jaeger Global Tracer initialized successfully.")
+		app.Logger.Info("Jaeger Global Tracer initialized successfully.")
 	}
 }
 
@@ -176,7 +187,7 @@ func (app *App) setConfigurationDefaults() {
 }
 
 func (app *App) loadConfiguration() {
-	logger.Logger.Info("ConfigPath: " + app.ConfigPath)
+	app.Logger.Info("ConfigPath: " + app.ConfigPath)
 
 	app.Config.SetConfigType("yaml")
 	app.Config.SetConfigFile(app.ConfigPath)
@@ -185,7 +196,7 @@ func (app *App) loadConfiguration() {
 	app.Config.AutomaticEnv()
 
 	if err := app.Config.ReadInConfig(); err == nil {
-		logger.Logger.Debug("Config file read successfully")
+		app.Logger.Debug("Config file read successfully")
 	} else {
 		panic(fmt.Sprintf("Could not load configuration file, err: %s", err))
 	}
@@ -193,7 +204,7 @@ func (app *App) loadConfiguration() {
 
 func (app *App) configureSentry() {
 	sentryURL := app.Config.GetString("sentry.url")
-	logger.Logger.Info(fmt.Sprintf("Configuring sentry with URL %s", sentryURL))
+	app.Logger.Info(fmt.Sprintf("Configuring sentry with URL %s", sentryURL))
 	raven.SetDSN(sentryURL)
 }
 
@@ -204,9 +215,7 @@ func (app *App) configureApplication() {
 	a := app.API
 	_, w, _ := os.Pipe()
 	a.SetLogOutput(w)
-	a.Use(NewLoggerMiddleware(zap.New(
-		zap.NewJSONEncoder(),
-	)).Serve)
+	a.Use(NewLoggerMiddleware(app.Logger).Serve)
 	a.Use(NewSentryMiddleware().Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
@@ -225,8 +234,6 @@ func (app *App) configureApplication() {
 
 // OnErrorHandler handles application panics
 func (app *App) OnErrorHandler(err interface{}, stack []byte) {
-	logger.Logger.Error(err)
-
 	var e error
 	switch err.(type) {
 	case error:
@@ -235,6 +242,7 @@ func (app *App) OnErrorHandler(err interface{}, stack []byte) {
 		e = fmt.Errorf("%v", err)
 	}
 
+	app.Logger.Error("Recovering from error", zap.Error(e))
 	tags := map[string]string{
 		"source": "app",
 		"type":   "panic",

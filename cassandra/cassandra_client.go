@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/op/go-logging"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/cassandra"
 	"github.com/topfreegames/extensions/middleware"
+	"github.com/uber-go/zap"
 
 	cassandrainterfaces "github.com/topfreegames/extensions/cassandra/interfaces"
 )
 
-func sendMetrics(ctx context.Context, mr middleware.MetricsReporter, keyspace string, elapsed time.Duration, logger *logging.Logger) {
+func sendMetrics(ctx context.Context, mr middleware.MetricsReporter, keyspace string, elapsed time.Duration, logger zap.Logger) {
 	logger.Debug("[sendMetrics] sending metrics do statsd")
 
 	if mr == nil || ctx == nil {
@@ -35,13 +35,13 @@ func sendMetrics(ctx context.Context, mr middleware.MetricsReporter, keyspace st
 	logger.Debug("sending metrics to statsd")
 
 	if err := mr.Timing("cassandraQuery", elapsed, tags...); err != nil {
-		logger.Errorf("[sendMetrics] failed to send metric to statsd: %s", err.Error())
+		logger.Error("[sendMetrics] failed to send metric to statsd", zap.Error(err))
 	}
 }
 
 // QueryObserver implements gocql.QueryObserver
 type QueryObserver struct {
-	logger          *logging.Logger
+	logger          zap.Logger
 	MetricsReporter middleware.MetricsReporter
 }
 
@@ -52,7 +52,7 @@ func (o *QueryObserver) ObserveQuery(ctx context.Context, q gocql.ObservedQuery)
 
 // BatchObserver implements gocql.BatchObserver
 type BatchObserver struct {
-	logger          *logging.Logger
+	logger          zap.Logger
 	MetricsReporter middleware.MetricsReporter
 }
 
@@ -65,12 +65,12 @@ func (o *BatchObserver) ObserveBatch(ctx context.Context, b gocql.ObservedBatch)
 // Implements DataStore
 type Store struct {
 	DBSession cassandrainterfaces.Session
-	logger    *logging.Logger
+	logger    zap.Logger
 }
 
 // GetCassandra connects on Cassandra and returns the client with a session
 func GetCassandra(
-	logger *logging.Logger,
+	logger zap.Logger,
 	config *viper.Viper,
 	mr middleware.MetricsReporter,
 ) (DataStore, error) {
@@ -85,7 +85,7 @@ func GetCassandra(
 
 	client, err := cassandra.NewClient(params)
 	if err != nil {
-		logger.Errorf("[GetCassandra] connection to database failed: %s", err.Error())
+		logger.Error("[GetCassandra] connection to database failed", zap.Error(err))
 		return nil, err
 	}
 

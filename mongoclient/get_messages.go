@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/models"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -54,10 +53,13 @@ type QueryParameters struct {
 // the MessageV2 model into the Message one for retrocompatibility
 // Rhe main difference being that the payload field is now referred to as "original_payload" and
 // is a JSON object, not a string, and also the timestamp is int64 seconds since Unix epoch, not an ISODate
-func GetMessages(ctx context.Context, queryParameters QueryParameters) []*models.Message {
+func GetMessages(ctx context.Context, queryParameters QueryParameters) ([]*models.Message, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "get_messages")
 	defer span.Finish()
-	searchResults := GetMessagesV2(ctx, queryParameters)
+	searchResults, err := GetMessagesV2(ctx, queryParameters)
+	if err != nil {
+		return nil, err
+	}
 	messages := make([]*models.Message, 0)
 	for _, result := range searchResults {
 		payload := result.Payload
@@ -72,7 +74,7 @@ func GetMessages(ctx context.Context, queryParameters QueryParameters) []*models
 		messages = append(messages, message)
 	}
 
-	return messages
+	return messages, nil
 }
 
 func convertRawMessageToModelMessage(rawMessage MongoMessage) (*models.MessageV2, error) {
@@ -127,7 +129,7 @@ func convertPlayerIdToString(playerID interface{}) (string, error) {
 	return "", fmt.Errorf("error converting player id to float64 or string. player id raw value: %s", playerID)
 }
 
-func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameters QueryParameters) []*models.MessageV2 {
+func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameters QueryParameters) ([]*models.MessageV2, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "get_messages_player_support_v2_with_parameter")
 	defer span.Finish()
 
@@ -139,8 +141,7 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameter
 			log.Message("Error getting collection from MongoDB"),
 			log.Error(err),
 		)
-		logger.Logger.Warningf("Error getting collection from MongoDB: %s", err.Error())
-		return []*models.MessageV2{}
+		return []*models.MessageV2{}, fmt.Errorf("Error getting collection from MongoDB: %w", err)
 	}
 
 	rawResults, err := getMessagesPlayerSupportFromCollection(ctx, queryParameters, mongoCollection)
@@ -151,8 +152,7 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameter
 			log.Message("Error getting messages from MongoDB"),
 			log.Error(err),
 		)
-		logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
-		return []*models.MessageV2{}
+		return []*models.MessageV2{}, fmt.Errorf("Error getting messages from MongoDB: %w", err)
 	}
 
 	// convert the raw results to the MessageV2 model
@@ -167,12 +167,11 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameter
 				log.Message("Error converting messages from MongoDB"),
 				log.Error(err),
 			)
-			logger.Logger.Warningf("Error converting messages from MongoDB: %s", err.Error())
-			return []*models.MessageV2{}
+			return []*models.MessageV2{}, fmt.Errorf("Error converting messages from MongoDB: %w", err)
 		}
 	}
 
-	return searchResults
+	return searchResults, nil
 }
 
 func getMessagesPlayerSupportFromCollection(

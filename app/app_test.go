@@ -10,7 +10,7 @@ const testCfgFile = "../config/test.yaml"
 const invalidCfgFile = "../config/invalid"
 
 func TestGetApp(t *testing.T) {
-	viper.SetDefault("logger.level", "DEBUG")
+	viper.SetDefault("logger.level", "debug")
 	viper.SetConfigFile(testCfgFile)
 	app := GetApp("127.0.0.1", 9999, false, testCfgFile)
 	if app.Port != 9999 || app.Host != "127.0.0.1" {
