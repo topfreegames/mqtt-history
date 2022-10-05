@@ -1,8 +1,4 @@
 services:
-  cassandra:
-    image: cassandra:3.11
-    ports:
-      - 9042:9042
   mosquitto:
     image: eclipse-mosquitto:1.4.12
   mqtt-history:
@@ -13,9 +9,6 @@ services:
       - MQTTHISTORY_MQTTSERVER_HOST=mosquitto
       - MQTTHISTORY_MQTTSERVER_PORT=1883
       - MQTTHISTORY_MONGO_HOST=mongodb://mongo:27017/?ssl=false
-      # if you want to use cassandra, uncomment the next 2 env vars
-      # - MQTTHISTORY_CASSANDRA_ENABLED=true
-      # - MQTTHISTORY_CASSANDRA_HOSTS=cassandra:9042
       - JAEGER_DISABLED=false
       - JAEGER_AGENT_HOST=jaeger
       - JAEGER_AGENT_PORT=6831
@@ -26,7 +19,6 @@ services:
       - "8888:8888"
     depends_on:
       - mosquitto
-      - cassandra
   mongo:
     image: mongo:3.6.23
     ports:
