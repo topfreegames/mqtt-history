@@ -79,14 +79,6 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			return c.JSON(http.StatusOK, messages)
 		}
 
-		bucketQnt := app.Defaults.BucketQuantityOnSelect
-		currentBucket := app.Bucket.Get(from)
-
-		for _, topic := range authorizedTopics {
-			topicMessages := selectFromBuckets(c.StdContext(), bucketQnt, int(limit), currentBucket, topic, app.Cassandra)
-			messages = append(messages, topicMessages...)
-		}
-
-		return c.JSON(http.StatusOK, messages)
+		return c.JSON(http.StatusOK, nil)
 	}
 }

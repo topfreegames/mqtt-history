@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	goblin "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
@@ -62,15 +61,11 @@ func TestHistoryHandler(t *testing.T) {
 				err := AuthorizeTestUserInTopics(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
-				testMessage := models.Message{
-					Timestamp: time.Now(),
-					Payload:   "{\"test1\":\"test2\"}",
-					Topic:     topic,
-				}
-
-				bucket := a.Bucket.Get(testMessage.Timestamp.Unix())
-				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, bucket)
+				err = InsertMongoMessages(ctx, []string{topic})
 				Expect(err).To(BeNil())
+
+				// enable mongo as message store
+				a.Defaults.MongoEnabled = true
 
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
@@ -131,15 +126,11 @@ func TestHistoryHandler(t *testing.T) {
 				err := AuthorizeTestUserInTopics(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
 
-				testMessage := models.Message{
-					Timestamp: time.Now(),
-					Payload:   "{\"test1\":\"test2\"}",
-					Topic:     topic,
-				}
-
-				bucket := a.Bucket.Get(testMessage.Timestamp.Unix())
-				err = a.Cassandra.InsertWithTTL(context.TODO(), testMessage.Topic, testMessage.Payload, bucket)
+				err = InsertMongoMessages(ctx, []string{topic})
 				Expect(err).To(BeNil())
+
+				// enable mongo as message store
+				a.Defaults.MongoEnabled = true
 
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
