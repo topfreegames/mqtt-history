@@ -91,11 +91,9 @@ func (app *App) configureStorage() {
 
 func (app *App) configureDefaults() {
 	app.Defaults = &models.Defaults{
-		BucketQuantityOnSelect:  app.Config.GetInt("cassandra.bucket.quantity"),
-		LimitOfMessages:         app.Config.GetInt64("cassandra.messages.limit"),
+		LimitOfMessages:         app.Config.GetInt64("mongo.messages.limit"),
 		MongoEnabled:            app.Config.GetBool("mongo.messages.enabled"),
 		MongoMessagesCollection: app.Config.GetString("mongo.messages.collection"),
-		CassandraEnabled:        app.Config.GetBool("cassandra.enabled"),
 	}
 }
 

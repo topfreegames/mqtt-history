@@ -32,7 +32,7 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 
 		logger.Logger.Debugf(
 			"user %s is asking for history v2 for topic %s with date args from=%d to=%d and limit=%d",
-			userID, from, to, limit)
+			userID, topic, from, to, limit)
 
 		messages := make([]*models.MessageV2, 0)
 		collection := app.Defaults.MongoMessagesCollection
