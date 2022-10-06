@@ -2,7 +2,6 @@ package app
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/topfreegames/mqtt-history/mongoclient"
 
@@ -32,53 +31,22 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		}
 
 		messages := make([]*models.Message, 0)
-		if app.Defaults.MongoEnabled {
-			collection := app.Defaults.MongoMessagesCollection
-			var wg sync.WaitGroup
-			var mu sync.Mutex
-			// guarantees ordering in responses payload
-			topicsMessagesMap := make(map[string][]*models.MessageV2, len(authorizedTopics))
-			for _, topic := range authorizedTopics {
-				wg.Add(1)
-				go func(topicsMessagesMap map[string][]*models.MessageV2, topic string) {
-					topicMessages := mongoclient.GetMessagesV2(
-						c,
-						mongoclient.QueryParameters{
-							Topic:      topic,
-							From:       from,
-							Limit:      limit,
-							Collection: collection,
-						},
-					)
-					mu.Lock()
-					topicsMessagesMap[topic] = topicMessages
-					mu.Unlock()
-					wg.Done()
-				}(topicsMessagesMap, topic)
-			}
-			wg.Wait()
-			var gameID string
-			// guarantees ordering in responses payload
-			for _, topic := range authorizedTopics {
-				topicMessages := make([]*models.Message, len(topicsMessagesMap[topic]))
-				for idx, topicMessageV2 := range topicsMessagesMap[topic] {
-					topicMessages[idx] = mongoclient.ConvertMessageV2ToMessage(topicMessageV2)
-				}
-				messages = append(messages, topicMessages...)
-				if gameID != "" && len(topicsMessagesMap[topic]) > 0 {
-					gameID = topicsMessagesMap[topic][0].GameId
-				}
-			}
 
-			if gameID != "" {
-				if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
-					metricTagsMap["gameID"] = gameID
-				}
-			}
+		collection := app.Defaults.MongoMessagesCollection
 
-			return c.JSON(http.StatusOK, messages)
+		for _, topic := range authorizedTopics {
+			topicMessages := mongoclient.GetMessages(
+				c,
+				mongoclient.QueryParameters{
+					Topic:      topic,
+					From:       from,
+					Limit:      limit,
+					Collection: collection,
+				},
+			)
+			messages = append(messages, topicMessages...)
 		}
+		return c.JSON(http.StatusOK, messages)
 
-		return c.JSON(http.StatusOK, nil)
 	}
 }

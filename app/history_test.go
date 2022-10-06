@@ -32,10 +32,6 @@ func TestHistoryHandler(t *testing.T) {
 		ctx := context.Background()
 		a := GetDefaultTestApp()
 
-		g.AfterEach(func() {
-			a.Defaults.MongoEnabled = false
-		})
-
 		g.Describe("History Handler", func() {
 			g.It("It should return 401 if the user is not authorized into the topic", func() {
 				userID := fmt.Sprintf("test:%s", uuid.NewV4().String())
@@ -64,9 +60,6 @@ func TestHistoryHandler(t *testing.T) {
 				err = InsertMongoMessages(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
-				// enable mongo as message store
-				a.Defaults.MongoEnabled = true
-
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
@@ -86,9 +79,6 @@ func TestHistoryHandler(t *testing.T) {
 
 				err = InsertMongoMessages(ctx, []string{topic})
 				Expect(err).To(BeNil())
-
-				// enable mongo as message store
-				a.Defaults.MongoEnabled = true
 
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
@@ -129,9 +119,6 @@ func TestHistoryHandler(t *testing.T) {
 				err = InsertMongoMessages(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
-				// enable mongo as message store
-				a.Defaults.MongoEnabled = true
-
 				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
@@ -142,7 +129,6 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 and the unblocked messages if the user is authorized into the topic ", func() {
-				a.Defaults.MongoEnabled = true
 
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testID)
@@ -170,7 +156,6 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 and only blocked messages if the user is authorized into the topic", func() {
-				a.Defaults.MongoEnabled = true
 
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testID)
@@ -198,7 +183,6 @@ func TestHistoryHandler(t *testing.T) {
 			})
 
 			g.It("It should return 200 and only mensagens that are not blocked if the user is authorized into the topic but sent a wrong isBlocked flag", func() {
-				a.Defaults.MongoEnabled = true
 
 				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
 				topic := fmt.Sprintf("chat/test_%s", testID)

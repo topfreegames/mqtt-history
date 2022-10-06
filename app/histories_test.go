@@ -35,10 +35,6 @@ func TestHistoriesHandler(t *testing.T) {
 		a := GetDefaultTestApp()
 
 		g.Describe("Histories Handler", func() {
-			// teardown individual test environment
-			g.AfterEach(func() {
-				a.Defaults.MongoEnabled = false
-			})
 
 			g.It("It should return 401 if the user is not authorized into the topics", func() {
 				userID := fmt.Sprintf("test:%s", uuid.NewV4().String())
@@ -61,9 +57,6 @@ func TestHistoriesHandler(t *testing.T) {
 
 				err = InsertMongoMessages(ctx, authorizedTopics)
 				Expect(err).To(BeNil())
-
-				// when the mongo feature flag is enabled
-				a.Defaults.MongoEnabled = true
 
 				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
 				status, body := Get(a, path, t)
@@ -91,8 +84,6 @@ func TestHistoriesHandler(t *testing.T) {
 
 				err = InsertMongoMessages(ctx, []string{topic, topic2})
 				Expect(err).To(BeNil())
-
-				a.Defaults.MongoEnabled = true
 
 				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
 				status, body := Get(a, path, t)
@@ -144,8 +135,6 @@ func TestHistoriesHandler(t *testing.T) {
 
 				err = InsertMongoMessages(ctx, []string{topic, topic2})
 				Expect(err).To(BeNil())
-
-				a.Defaults.MongoEnabled = true
 
 				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s,%s", testID, testID2)
 				status, body := Get(a, path, t)

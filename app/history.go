@@ -28,20 +28,17 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
 
-		if app.Defaults.MongoEnabled {
-			collection := app.Defaults.MongoMessagesCollection
-			messages := mongoclient.GetMessages(
-				c,
-				mongoclient.QueryParameters{
-					Topic:      topic,
-					From:       from,
-					Limit:      limit,
-					Collection: collection,
-				},
-			)
-			return c.JSON(http.StatusOK, messages)
-		}
-		return c.JSON(http.StatusOK, nil)
+		collection := app.Defaults.MongoMessagesCollection
+		messages := mongoclient.GetMessages(
+			c,
+			mongoclient.QueryParameters{
+				Topic:      topic,
+				From:       from,
+				Limit:      limit,
+				Collection: collection,
+			},
+		)
+		return c.JSON(http.StatusOK, messages)
 
 	}
 }

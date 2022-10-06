@@ -81,10 +81,9 @@ func (app *App) configureBucket() {
 }
 
 func (app *App) configureStorage() {
-	if app.Defaults.MongoEnabled {
-		app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
-		return
-	}
+
+	app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
+	return
 
 	app.configureBucket()
 }
@@ -92,7 +91,6 @@ func (app *App) configureStorage() {
 func (app *App) configureDefaults() {
 	app.Defaults = &models.Defaults{
 		LimitOfMessages:         app.Config.GetInt64("mongo.messages.limit"),
-		MongoEnabled:            app.Config.GetBool("mongo.messages.enabled"),
 		MongoMessagesCollection: app.Config.GetString("mongo.messages.collection"),
 	}
 }
