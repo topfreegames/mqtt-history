@@ -21,18 +21,10 @@ run-containers: ## run all test containers
 kill-containers: ## kill all test containers
 	@cd test_containers && docker-compose stop && cd ..
 
-CASSANDRA_CONTAINER := mqtt-history_cassandra_1
-create-cassandra-table:
-	@until docker exec $(CASSANDRA_CONTAINER) cqlsh -e 'describe cluster'; do echo 'Waiting for Cassandra...' && sleep 2; done
-	@echo 'Creating keyspace and table on Cassandra'
-	@docker exec $(CASSANDRA_CONTAINER) cqlsh -e "$$(cat scripts/create.cql)";
-	@echo 'Done'
-
 setup/mongo: 
 	go run scripts/setup_mongo_messages-index.go
 
 run-tests: run-containers ## run tests using the docker containers
-	@make CASSANDRA_CONTAINER=mqtthistory_test_cassandra create-cassandra-table
 	@make coverage
 	@make kill-containers
 
@@ -45,7 +37,7 @@ run: ## start the API
 	@go run main.go start
 
 deps: ## start the API dependencies as docker containers
-	@docker-compose up -d mongo cassandra
+	@docker-compose up -d mongo 
 
 cross: cross-linux cross-darwin
 

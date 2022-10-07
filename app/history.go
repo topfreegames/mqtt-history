@@ -28,28 +28,17 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
 		}
 
-		if app.Defaults.MongoEnabled {
-			collection := app.Defaults.MongoMessagesCollection
-			messages := mongoclient.GetMessages(
-				c,
-				mongoclient.QueryParameters{
-					Topic:      topic,
-					From:       from,
-					Limit:      limit,
-					Collection: collection,
-				},
-			)
-			return c.JSON(http.StatusOK, messages)
-		}
-
-		bucketQnt := app.Defaults.BucketQuantityOnSelect
-		currentBucket := app.Bucket.Get(from)
-
-		messages := selectFromBuckets(c.StdContext(),
-			bucketQnt, int(limit), currentBucket,
-			topic,
-			app.Cassandra)
-
+		collection := app.Defaults.MongoMessagesCollection
+		messages := mongoclient.GetMessages(
+			c,
+			mongoclient.QueryParameters{
+				Topic:      topic,
+				From:       from,
+				Limit:      limit,
+				Collection: collection,
+			},
+		)
 		return c.JSON(http.StatusOK, messages)
+
 	}
 }

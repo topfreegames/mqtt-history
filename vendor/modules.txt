@@ -201,8 +201,6 @@ github.com/spf13/viper
 ## explicit; go 1.13
 # github.com/topfreegames/extensions v5.18.1+incompatible
 ## explicit
-github.com/topfreegames/extensions/cassandra
-github.com/topfreegames/extensions/cassandra/interfaces
 github.com/topfreegames/extensions/dogstatsd
 github.com/topfreegames/extensions/echo
 github.com/topfreegames/extensions/echo/middleware

@@ -21,7 +21,7 @@ import (
 	"github.com/labstack/echo/engine/standard"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/extensions/echo"
-	"github.com/topfreegames/mqtt-history/cassandra"
+
 	"github.com/topfreegames/mqtt-history/logger"
 	"github.com/topfreegames/mqtt-history/models"
 	"github.com/uber-go/zap"
@@ -41,7 +41,6 @@ type App struct {
 	NewRelic             newrelic.Application
 	NumberOfDaysToSearch int
 	DDStatsD             *extnethttpmiddleware.DogStatsD
-	Cassandra            cassandra.DataStore
 	Defaults             *models.Defaults
 	Bucket               *models.Bucket
 }
@@ -82,41 +81,18 @@ func (app *App) configureBucket() {
 }
 
 func (app *App) configureStorage() {
-	if app.Defaults.MongoEnabled {
-		app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
-		return
-	}
+
+	app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
+	return
 
 	app.configureBucket()
-	if app.Defaults.CassandraEnabled {
-		app.configureCassandra()
-	}
 }
 
 func (app *App) configureDefaults() {
 	app.Defaults = &models.Defaults{
-		BucketQuantityOnSelect:  app.Config.GetInt("cassandra.bucket.quantity"),
-		LimitOfMessages:         app.Config.GetInt64("cassandra.messages.limit"),
-		MongoEnabled:            app.Config.GetBool("mongo.messages.enabled"),
+		LimitOfMessages:         app.Config.GetInt64("mongo.messages.limit"),
 		MongoMessagesCollection: app.Config.GetString("mongo.messages.collection"),
-		CassandraEnabled:        app.Config.GetBool("cassandra.enabled"),
 	}
-}
-
-func (app *App) configureCassandra() {
-	logger.Logger.Infof("Connecting to Cassandra")
-	cassandra, err := cassandra.GetCassandra(
-		logger.Logger,
-		app.Config,
-		app.DDStatsD,
-	)
-	if err != nil {
-		logger.Logger.Error("Failed to initialize Cassandra.", zap.Error(err))
-		panic(fmt.Sprintf("Could not initialize Cassandra, err: %s", err))
-	}
-
-	logger.Logger.Info("Initialized Cassandra successfully.")
-	app.Cassandra = cassandra
 }
 
 func (app *App) configureNewRelic() {

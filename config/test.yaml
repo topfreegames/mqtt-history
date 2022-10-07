@@ -2,14 +2,6 @@
 numberOfDaysToSearch: 7
 healthcheck:
   workingText: "WORKING"
-cassandra:
-  hosts: "localhost:9042"
-  keyspace: "chat"
-  enabled: true
-  bucket:
-    quantity: 10 # number of buckets to read on a select using limit
-  messages:
-    limit: 10
 mongo:
   host: "mongodb://localhost:27017"
   allow_anonymous: false

@@ -1,11 +1,6 @@
 version: '2'
 
 services:
-  cassandra:
-    image: cassandra:3.11
-    container_name: mqtthistory_test_cassandra
-    ports:
-      - 9042:9042
   mosquitto:
     image: eclipse-mosquitto:1.4.12
     container_name: mqtthistory_test_mosquitto
