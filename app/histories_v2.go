@@ -42,7 +42,7 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 		topicsMessagesMap := make(map[string][]*models.MessageV2, len(authorizedTopics))
 		for _, topic := range authorizedTopics {
 			wg.Add(1)
-			go func(topicsMessagesMap map[string][]*models.MessageV2, topic string) {
+			go func(topic string) {
 				topicMessages := mongoclient.GetMessagesV2(
 					c,
 					mongoclient.QueryParameters{
@@ -56,7 +56,7 @@ func HistoriesV2Handler(app *App) func(c echo.Context) error {
 				topicsMessagesMap[topic] = topicMessages
 				mu.Unlock()
 				wg.Done()
-			}(topicsMessagesMap, topic)
+			}(topic)
 		}
 		wg.Wait()
 		// guarantees ordering in responses payload
