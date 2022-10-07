@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// Message represents a chat message stored in MongoDB
+// Message represents a chat message
 type Message struct {
 	Timestamp time.Time `json:"timestamp" bson:"timestamp"`
 	Payload   string    `json:"payload" bson:"payload"`
@@ -14,7 +14,6 @@ type Message struct {
 }
 
 // MessageV2 represents new payload for the chat message
-// This payload is stored in MongoDB
 // v2 endpoints return this format,
 // while v1 endpoints convert this format to the originalMessage model
 type MessageV2 struct {
