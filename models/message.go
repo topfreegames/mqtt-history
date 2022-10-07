@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// Message represents a chat message stored in Cassandra
+// Message represents a chat message stored in MongoDB
 type Message struct {
 	Timestamp time.Time `json:"timestamp" bson:"timestamp"`
 	Payload   string    `json:"payload" bson:"payload"`
