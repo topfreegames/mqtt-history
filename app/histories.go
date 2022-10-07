@@ -22,7 +22,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			topics[i] = topicPrefix + "/" + topicSuffix
 		}
 
-		authenticated, authorizedTopics, err := IsAuthorized(c.StdContext(), app, userID, topics...)
+		authenticated, authorizedTopics, err := IsAuthorized(c, app, userID, topics...)
 		if err != nil {
 			return err
 		}
@@ -69,6 +69,5 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 			}
 		}
 		return c.JSON(http.StatusOK, messages)
-
 	}
 }

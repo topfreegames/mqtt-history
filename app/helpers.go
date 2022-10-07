@@ -19,6 +19,9 @@ import (
 
 	"github.com/labstack/echo"
 	newrelic "github.com/newrelic/go-agent"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 	"go.mongodb.org/mongo-driver/bson"
@@ -61,6 +64,16 @@ func WithSegment(name string, c echo.Context, f func() error) error {
 }
 
 func findAuthorizedTopics(ctx context.Context, username string, topics []string) ([]ACL, error) {
+	collection := "mqtt_acl"
+	span, ctx := opentracing.StartSpanFromContext(
+		ctx,
+		"find_authorized_topics",
+		opentracing.Tags{
+			string(ext.DBType): "mongo",
+			"collection":       collection,
+		},
+	)
+	defer span.Finish()
 	searchResults := make([]ACL, 0)
 	query := func(c *mongo.Collection) error {
 		opts := options.Find()
@@ -69,31 +82,41 @@ func findAuthorizedTopics(ctx context.Context, username string, topics []string)
 			{"username", 1},
 			{"pubsub", 1},
 		}
-
 		// add sort to match index
 		opts.SetSort(defaultACLSort)
-
 		query := bson.M{"username": username, "pubsub": bson.M{"$in": topics}}
+
+		statement := mongoclient.ExtractStatementForTrace(query, defaultACLSort, -1)
+		span.SetTag(string(ext.DBStatement), statement)
+		span.SetTag(string(ext.DBInstance), c.Database().Name())
+
 		cursor, err := c.Find(ctx, query)
 		if err != nil {
+			ext.LogError(span, err, log.Message("Error finding messages in MongoDB"))
 			return err
 		}
 
 		return cursor.All(ctx, &searchResults)
 	}
 	search := func() error {
-		mongoCollection, err := mongoclient.GetCollection(ctx, "mqtt_acl")
+		mongoCollection, err := mongoclient.GetCollection(ctx, collection)
 		if err != nil {
+			ext.LogError(span, err, log.Message("Error getting collection from MongoDB"))
 			return err
 		}
 		return query(mongoCollection)
 	}
 	err := search()
+	if err != nil {
+		ext.LogError(span, err, log.Message("Error decoding messages of a cursor from MongoDB"))
+	}
 	return searchResults, err
 }
 
 // GetTopics get topics
 func GetTopics(ctx context.Context, username string, _topics []string) ([]string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "get_topics")
+	defer span.Finish()
 	if viper.GetBool("mongo.allow_anonymous") {
 		return _topics, nil
 	}
@@ -114,13 +137,16 @@ func IsAuthorized(ctx context.Context, app *App, userID string, topics ...string
 	httpAuthEnabled := app.Config.GetBool("httpAuth.enabled")
 
 	if httpAuthEnabled {
-		return httpAuthorize(app, userID, topics)
+		return httpAuthorize(ctx, app, userID, topics)
 	}
 
 	return mongoAuthorize(ctx, userID, topics)
 }
 
-func httpAuthorize(app *App, userID string, topics []string) (bool, []string, error) {
+func httpAuthorize(ctx context.Context, app *App, userID string, topics []string) (bool, []string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "http_authorize")
+	defer span.Finish()
+
 	timeout := app.Config.GetDuration("httpAuth.timeout") * time.Second
 	address := app.Config.GetString("httpAuth.requestURL")
 
@@ -147,6 +173,11 @@ func httpAuthorize(app *App, userID string, topics []string) (bool, []string, er
 			request.SetBasicAuth(username, password)
 		}
 
+		opentracing.GlobalTracer().Inject(
+			span.Context(),
+			opentracing.HTTPHeaders,
+			opentracing.HTTPHeadersCarrier(request.Header))
+
 		response, err := client.Do(request)
 		// discard response body
 		if response != nil && response.Body != nil {
@@ -155,6 +186,7 @@ func httpAuthorize(app *App, userID string, topics []string) (bool, []string, er
 		}
 
 		if err != nil {
+			ext.LogError(span, err, log.Message("Error authorizing user"))
 			return false, nil, err
 		}
 
@@ -168,6 +200,8 @@ func httpAuthorize(app *App, userID string, topics []string) (bool, []string, er
 }
 
 func mongoAuthorize(ctx context.Context, userID string, topics []string) (bool, []string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "mongo_authorize")
+	defer span.Finish()
 	for _, topic := range topics {
 		pieces := strings.Split(topic, "/")
 		pieces[len(pieces)-1] = "+"

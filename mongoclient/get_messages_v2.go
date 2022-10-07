@@ -25,12 +25,8 @@ func GetMessagesV2WithParameter(ctx context.Context, queryParameters QueryParame
 
 	mongoCollection, err := GetCollection(ctx, queryParameters.Collection)
 	if err != nil {
-		span.SetTag("error", true)
-		span.LogFields(
-			log.Event("error"),
-			log.Message("Error getting collection from MongoDB"),
-			log.Error(err),
-		)
+		span.SetTag("collection", queryParameters.Collection)
+		ext.LogError(span, err, log.Message("Error getting collection from MongoDB"))
 		logger.Logger.Warning("Error getting collection from MongoDB", err)
 		return []*models.MessageV2{}
 	}
@@ -47,12 +43,7 @@ func GetMessagesV2WithParameter(ctx context.Context, queryParameters QueryParame
 		searchResults[i], err = convertRawMessageToModelMessage(rawResults[i])
 
 		if err != nil {
-			span.SetTag("error", true)
-			span.LogFields(
-				log.Event("error"),
-				log.Message("Error converting messages from MongoDB to the program domain format"),
-				log.Error(err),
-			)
+			ext.LogError(span, err, log.Message("Error converting messages from MongoDB to the program domain format"))
 			logger.Logger.Warningf("Error converting messages from MongoDB: %s", err.Error())
 			return []*models.MessageV2{}
 		}
@@ -78,15 +69,16 @@ func getMessagesFromCollection(
 		{"timestamp", -1},
 	}
 
-	statement := extractStatementForTrace(query, sort, queryParameters.Limit)
+	statement := ExtractStatementForTrace(query, sort, queryParameters.Limit)
 	span, ctx := opentracing.StartSpanFromContext(
 		ctx,
 		"get_messages_from_collection",
 		opentracing.Tags{
 			string(ext.DBStatement): statement,
 			string(ext.DBType):      "mongo",
-			string(ext.DBInstance):  database,
+			string(ext.DBInstance):  mongoCollection.Database().Name(),
 			string(ext.DBUser):      user,
+			"collection":            mongoCollection.Name(),
 		},
 	)
 	defer span.Finish()
@@ -97,23 +89,13 @@ func getMessagesFromCollection(
 
 	cursor, err := mongoCollection.Find(ctx, query, opts)
 	if err != nil {
-		span.SetTag("error", true)
-		span.LogFields(
-			log.Event("error"),
-			log.Message("Error finding messages in MongoDB"),
-			log.Error(err),
-		)
+		ext.LogError(span, err, log.Message("Error finding messages in MongoDB"))
 		return nil, err
 	}
 
 	rawResults := make([]MongoMessage, 0)
 	if err = cursor.All(ctx, &rawResults); err != nil {
-		span.SetTag("error", true)
-		span.LogFields(
-			log.Event("error"),
-			log.Message("Error decoding messages of a cursor from MongoDB"),
-			log.Error(err),
-		)
+		ext.LogError(span, err, log.Message("Error decoding messages of a cursor from MongoDB"))
 		return nil, err
 	}
 

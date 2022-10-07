@@ -19,7 +19,7 @@ run-containers: ## run all test containers
 	@cd test_containers && docker-compose up -d && cd ..
 
 kill-containers: ## kill all test containers
-	@cd test_containers && docker-compose stop && cd ..
+	@cd test_containers && docker-compose down && cd ..
 
 setup/mongo: 
 	go run scripts/setup_mongo_messages-index.go

@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/franela/goblin v0.0.0-20180407132755-cd5d08fb4ede
 	github.com/getsentry/raven-go v0.0.0-20160805001729-c9d3cc542ad1
-	github.com/gocql/gocql v0.0.0-20210128155005-14aa133462a3
 	github.com/labstack/echo v2.0.3-0.20160926051323-04e6901d05b5+incompatible
 	github.com/newrelic/go-agent v1.4.0
 	github.com/onsi/gomega v1.10.1
@@ -35,7 +34,6 @@ require (
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/gorilla/context v0.0.0-20160226214623-1ea25387ff6f // indirect
 	github.com/gorilla/mux v1.6.1 // indirect
-	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hashicorp/hcl v0.0.0-20160822214145-baeb59c71071 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
@@ -76,6 +74,5 @@ require (
 	google.golang.org/appengine v1.0.0 // indirect
 	google.golang.org/protobuf v1.23.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

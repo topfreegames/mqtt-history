@@ -67,13 +67,10 @@ func GetMessages(ctx context.Context, queryParameters QueryParameters) []*models
 }
 
 func ConvertMessageV2ToMessage(messagev2 *models.MessageV2) *models.Message {
-	payload := messagev2.Payload
-	bytes, _ := json.Marshal(payload)
-
-	finalStr := string(bytes)
+	pBytes, _ := json.Marshal(messagev2.Payload)
 	return &models.Message{
 		Timestamp: time.Unix(messagev2.Timestamp, 0),
-		Payload:   finalStr,
+		Payload:   string(pBytes),
 		Topic:     messagev2.Topic,
 	}
 }
@@ -136,24 +133,15 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameter
 
 	mongoCollection, err := GetCollection(ctx, queryParameters.Collection)
 	if err != nil {
-		span.SetTag("error", true)
-		span.LogFields(
-			log.Event("error"),
-			log.Message("Error getting collection from MongoDB"),
-			log.Error(err),
-		)
+		span.SetTag("collection", queryParameters.Collection)
+		ext.LogError(span, err, log.Message("Error getting collection from MongoDB"))
 		logger.Logger.Warningf("Error getting collection from MongoDB: %s", err.Error())
 		return []*models.MessageV2{}
 	}
 
 	rawResults, err := getMessagesPlayerSupportFromCollection(ctx, queryParameters, mongoCollection)
 	if err != nil {
-		span.SetTag("error", true)
-		span.LogFields(
-			log.Event("error"),
-			log.Message("Error getting messages from MongoDB"),
-			log.Error(err),
-		)
+		ext.LogError(span, err, log.Message("Error getting messages from MongoDB"))
 		logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
 		return []*models.MessageV2{}
 	}
@@ -164,12 +152,7 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameter
 		searchResults[i], err = convertRawMessageToModelMessage(rawResults[i])
 
 		if err != nil {
-			span.SetTag("error", true)
-			span.LogFields(
-				log.Event("error"),
-				log.Message("Error converting messages from MongoDB"),
-				log.Error(err),
-			)
+			ext.LogError(span, err, log.Message("Error converting messages from MongoDB"))
 			logger.Logger.Warningf("Error converting messages from MongoDB: %s", err.Error())
 			return []*models.MessageV2{}
 		}
@@ -189,15 +172,16 @@ func getMessagesPlayerSupportFromCollection(
 		{"timestamp", -1},
 	}
 
-	statement := extractStatementForTrace(query, sort, queryParameters.Limit)
+	statement := ExtractStatementForTrace(query, sort, queryParameters.Limit)
 	span, ctx := opentracing.StartSpanFromContext(
 		ctx,
 		"get_messages_player_support_from_collection",
 		opentracing.Tags{
 			string(ext.DBStatement): statement,
 			string(ext.DBType):      "mongo",
-			string(ext.DBInstance):  database,
+			string(ext.DBInstance):  mongoCollection.Database().Name(),
 			string(ext.DBUser):      user,
+			"collection":            mongoCollection.Name(),
 		},
 	)
 	defer span.Finish()
@@ -208,13 +192,13 @@ func getMessagesPlayerSupportFromCollection(
 
 	cursor, err := mongoCollection.Find(ctx, query, opts)
 	if err != nil {
-		span.SetTag("error", true)
+		ext.LogError(span, err, log.Message("Error finding messages in MongoDB"))
 		return nil, err
 	}
 
 	rawResults := make([]MongoMessage, 0)
 	if err = cursor.All(ctx, &rawResults); err != nil {
-		span.SetTag("error", true)
+		ext.LogError(span, err, log.Message("Error decoding messages of a cursor from MongoDB"))
 		return nil, err
 	}
 
@@ -241,18 +225,13 @@ func resolveQuery(queryParameters QueryParameters) bson.M {
 	return query
 }
 
-func extractStatementForTrace(query bson.M, sort bson.D, limit int64) string {
-	statementByteArray, err := bson.MarshalExtJSON(query, true, true)
-	if err == nil {
-		statementByteArray, _ = bson.MarshalExtJSONAppend(
-			statementByteArray,
-			bson.D{
-				{"sort", sort},
-				{"limit", limit},
-			},
-			true,
-			true,
-		)
+func ExtractStatementForTrace(query bson.M, sort bson.D, limit int64) string {
+	queryCopy := make(map[string]interface{}, len(query))
+	for k, v := range query {
+		queryCopy[k] = v
 	}
+	queryCopy["sort"] = sort
+	queryCopy["limit"] = limit
+	statementByteArray, _ := bson.MarshalExtJSON(queryCopy, true, true)
 	return string(statementByteArray)
 }
