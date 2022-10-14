@@ -68,6 +68,13 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 				gameID = topicsMessagesMap[topic][0].GameId
 			}
 		}
+
+		if len(messages) > 0 {
+			if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+				metricTagsMap["gameID"] = gameID
+			}
+		}
+
 		return c.JSON(http.StatusOK, messages)
 	}
 }
