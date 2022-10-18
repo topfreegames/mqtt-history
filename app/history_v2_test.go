@@ -69,7 +69,7 @@ func TestHistoryV2Handler(t *testing.T) {
 				err := AuthorizeTestUserInTopics(ctx, []string{topic})
 				Expect(err).To(BeNil())
 
-				path := fmt.Sprintf("/history/%s?userid=test:test", topic)
+				path := fmt.Sprintf("/v2/history/%s?userid=test:test", topic)
 				status, body := Get(a, path, t)
 				g.Assert(status).Equal(http.StatusOK)
 
