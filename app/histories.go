@@ -64,10 +64,17 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 				topicMessages[idx] = mongoclient.ConvertMessageV2ToMessage(topicMessageV2)
 			}
 			messages = append(messages, topicMessages...)
-			if gameID != "" && len(topicsMessagesMap[topic]) > 0 {
+			if len(topicsMessagesMap[topic]) > 0 {
 				gameID = topicsMessagesMap[topic][0].GameId
 			}
 		}
+
+		if len(messages) > 0 {
+			if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+				metricTagsMap["gameID"] = gameID
+			}
+		}
+
 		return c.JSON(http.StatusOK, messages)
 	}
 }

@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
-	extechomiddleware "github.com/topfreegames/extensions/echo/middleware"
 	extnethttpmiddleware "github.com/topfreegames/extensions/middleware"
 
 	"github.com/getsentry/raven-go"
@@ -183,7 +182,7 @@ func (app *App) configureApplication() {
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
 	if app.Config.GetBool("extensions.dogstatsd.enabled") {
-		a.Use(extechomiddleware.NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
+		a.Use(NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
 	}
 	// Routes
 	a.Get("/healthcheck", HealthCheckHandler(app))

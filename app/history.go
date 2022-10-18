@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 
+	"github.com/topfreegames/mqtt-history/models"
 	"github.com/topfreegames/mqtt-history/mongoclient"
 
 	"github.com/labstack/echo"
@@ -15,7 +16,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 		c.Set("route", "History")
 		topic := c.ParamValues()[0]
 		userID, from, limit, _ := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
-		authenticated, _, err := IsAuthorized(c.StdContext(), app, userID, topic)
+		authenticated, _, err := IsAuthorized(c, app, userID, topic)
 		if err != nil {
 			return err
 		}
@@ -29,7 +30,8 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 		}
 
 		collection := app.Defaults.MongoMessagesCollection
-		messages := mongoclient.GetMessages(
+		messages := make([]*models.Message, 0)
+		messagesV2 := mongoclient.GetMessagesV2(
 			c,
 			mongoclient.QueryParameters{
 				Topic:      topic,
@@ -38,6 +40,22 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 				Collection: collection,
 			},
 		)
+
+		var gameID string
+
+		message := make([]*models.Message, len(messagesV2))
+		for idx, messageV2 := range messagesV2 {
+			message[idx] = mongoclient.ConvertMessageV2ToMessage(messageV2)
+		}
+		messages = append(messages, message...)
+
+		if len(messages) > 0 {
+			gameID = messagesV2[0].GameId
+			if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+				metricTagsMap["gameID"] = gameID
+			}
+		}
+
 		return c.JSON(http.StatusOK, messages)
 
 	}

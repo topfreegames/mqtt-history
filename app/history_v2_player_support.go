@@ -49,6 +49,13 @@ func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 			},
 		)
 
+		if len(messages) > 0 {
+			gameId := messages[0].GameId
+			if metricTagsMap, ok := c.Get("metricTagsMap").(map[string]interface{}); ok {
+				metricTagsMap["gameID"] = gameId
+			}
+		}
+
 		return c.JSON(http.StatusOK, messages)
 	}
 }

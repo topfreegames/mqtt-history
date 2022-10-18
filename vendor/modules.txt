@@ -194,7 +194,6 @@ github.com/spf13/viper
 ## explicit
 github.com/topfreegames/extensions/dogstatsd
 github.com/topfreegames/extensions/echo
-github.com/topfreegames/extensions/echo/middleware
 github.com/topfreegames/extensions/jaeger
 github.com/topfreegames/extensions/jaeger/echo
 github.com/topfreegames/extensions/middleware
