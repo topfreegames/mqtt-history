@@ -20,7 +20,7 @@ services:
     depends_on:
       - mosquitto
   mongo:
-    image: mongo:3.6.23
+    image: mongo:5
     ports:
       - "27017:27017"
     volumes:

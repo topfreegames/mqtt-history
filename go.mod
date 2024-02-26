@@ -16,7 +16,7 @@ require (
 	github.com/topfreegames/extensions v5.18.1+incompatible
 	github.com/uber-go/zap v0.0.0-20160809182253-d11d2851fcab
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
-	go.mongodb.org/mongo-driver v1.5.3
+	go.mongodb.org/mongo-driver v1.7.0
 )
 
 require (
@@ -24,7 +24,6 @@ require (
 	github.com/DataDog/datadog-go v0.0.0-20170427165718-0ddda6bee211 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f // indirect
-	github.com/aws/aws-sdk-go v1.34.28 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-pg/pg v6.10.0+incompatible // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
@@ -37,7 +36,6 @@ require (
 	github.com/hashicorp/hcl v0.0.0-20160822214145-baeb59c71071 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.9.5 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/fs v0.0.0-20131111012553-2788f0dbd169 // indirect
