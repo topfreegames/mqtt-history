@@ -16,10 +16,10 @@ tidy:
 	@go mod tidy
 
 run-containers: ## run all test containers
-	@cd test_containers && docker-compose up -d && cd ..
+	@cd test_containers && docker compose up -d && cd ..
 
 kill-containers: ## kill all test containers
-	@cd test_containers && docker-compose down && cd ..
+	@cd test_containers && docker compose down && cd ..
 
 setup/mongo: 
 	go run scripts/setup_mongo_messages-index.go
@@ -37,7 +37,7 @@ run: ## start the API
 	@go run main.go start
 
 deps: ## start the API dependencies as docker containers
-	@docker-compose up -d mongo 
+	@docker compose up -d mongo 
 
 cross: cross-linux cross-darwin
 
