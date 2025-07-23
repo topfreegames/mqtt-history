@@ -120,7 +120,7 @@ func (l LoggerMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 			return result
 		}
 		//Everything went ok
-		reqLog.Info("Request successful.")
+		reqLog.Debug("Request successful.")
 		return result
 
 	}
