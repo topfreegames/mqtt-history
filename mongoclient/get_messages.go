@@ -284,7 +284,6 @@ func getMessagesByGameIDFromCollection(
 		"timestamp": bson.M{
 			"$gte": queryParameters.From,
 		},
-		"blocked": queryParameters.IsBlocked,
 	}
 
 	sort := bson.D{
@@ -308,12 +307,11 @@ func getMessagesByGameIDFromCollection(
 	opts := options.Find()
 	opts.SetSort(sort)
 
-	// Set limit - if no limit is specified, use a reasonable default to prevent memory issues
-	limit := queryParameters.Limit
-	if limit <= 0 {
-		limit = 100000 // Default maximum limit to prevent memory issues
+	// Only set limit if explicitly specified (> 0)
+	// If Limit is 0 or not set, no limit is applied - gets all messages
+	if queryParameters.Limit > 0 {
+		opts.SetLimit(queryParameters.Limit)
 	}
-	opts.SetLimit(limit)
 
 	cursor, err := mongoCollection.Find(ctx, query, opts)
 	if err != nil {

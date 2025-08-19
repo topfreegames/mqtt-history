@@ -17,7 +17,7 @@ func BattletanksCSVHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "BattletanksCSV")
 
-		logger.Logger.Debug("Request for Battletanks CSV export from August 12th")
+		logger.Logger.Debug("Request for Battletanks CSV export from August 12th (including blocked and non-blocked messages)")
 
 		// Define the start date as August 12, current year in UTC
 		currentYear := time.Now().Year()
@@ -45,8 +45,7 @@ func BattletanksCSVHandler(app *App) func(c echo.Context) error {
 			Collection: collection,
 			GameID:     "battletanks",
 			From:       fromTimestamp,
-			IsBlocked:  false, // Only non-blocked messages
-			Limit:      0,     // No limit, get all messages
+			Limit:      0, // No limit, get all messages
 		}
 
 		// Get messages from MongoDB
@@ -57,7 +56,7 @@ func BattletanksCSVHandler(app *App) func(c echo.Context) error {
 			return c.JSON(http.StatusNotFound, "No messages found")
 		}
 
-		logger.Logger.Debugf("Found %d messages for battletanks from August 12th", len(messages))
+		logger.Logger.Debugf("Found %d messages for battletanks from August 12th (including blocked and non-blocked)", len(messages))
 
 		// Set response headers for CSV download
 		filename := fmt.Sprintf("battletanks_messages_%s.csv", time.Now().Format("20060102_150405"))
