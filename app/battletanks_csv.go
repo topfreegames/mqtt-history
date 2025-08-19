@@ -45,20 +45,10 @@ func BattletanksCSVHandler(app *App) func(c echo.Context) error {
 			Collection: collection,
 			GameID:     "battletanks",
 			From:       fromTimestamp,
-			Limit:      0, // No limit, get all messages
+			Limit:      50000, // Temporary limit to avoid OOM - get 50k messages max
 		}
 
-		// Get messages from MongoDB
-		messages := mongoclient.GetMessagesByGameIDWithDateFilter(c, queryParams)
-
-		if len(messages) == 0 {
-			logger.Logger.Debug("No messages found for battletanks from August 12th")
-			return c.JSON(http.StatusNotFound, "No messages found")
-		}
-
-		logger.Logger.Debugf("Found %d messages for battletanks from August 12th (including blocked and non-blocked)", len(messages))
-
-		// Set response headers for CSV download
+		// Set response headers for CSV download first
 		filename := fmt.Sprintf("battletanks_messages_%s.csv", time.Now().Format("20060102_150405"))
 		c.Response().Header().Set("Content-Type", "text/csv; charset=utf-8")
 		c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
@@ -84,6 +74,16 @@ func BattletanksCSVHandler(app *App) func(c echo.Context) error {
 			return c.String(http.StatusInternalServerError, "Error generating CSV header")
 		}
 
+		// Get messages from MongoDB (with limit to avoid OOM)
+		messages := mongoclient.GetMessagesByGameIDWithDateFilter(c, queryParams)
+
+		if len(messages) == 0 {
+			logger.Logger.Debug("No messages found for battletanks from August 12th")
+			return c.JSON(http.StatusNotFound, "No messages found")
+		}
+
+		logger.Logger.Debugf("Found %d messages for battletanks from August 12th (limited to prevent OOM)", len(messages))
+
 		// Write CSV data
 		for _, msg := range messages {
 			// Skip nil messages
@@ -95,40 +95,14 @@ func BattletanksCSVHandler(app *App) func(c echo.Context) error {
 			messageTime := time.Unix(msg.Timestamp, 0).UTC()
 			dateStr := messageTime.Format("2006-01-02 15:04:05")
 
-			// Safely extract fields, handling potential empty values
-			id := ""
-			if msg.Id != "" {
-				id = msg.Id
-			}
-
-			playerId := ""
-			if msg.PlayerId != "" {
-				playerId = msg.PlayerId
-			}
-
-			message := ""
-			if msg.Message != "" {
-				message = msg.Message
-			}
-
-			topic := ""
-			if msg.Topic != "" {
-				topic = msg.Topic
-			}
-
-			gameId := ""
-			if msg.GameId != "" {
-				gameId = msg.GameId
-			}
-
 			record := []string{
-				id,
+				msg.Id,
 				strconv.FormatInt(msg.Timestamp, 10),
 				dateStr,
-				topic,
-				playerId,
-				message,
-				gameId,
+				msg.Topic,
+				msg.PlayerId,
+				msg.Message,
+				msg.GameId,
 				strconv.FormatBool(msg.Blocked),
 				strconv.FormatBool(msg.ShouldModerate),
 			}
