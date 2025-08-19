@@ -80,7 +80,6 @@ func (app *App) configureBucket() {
 }
 
 func (app *App) configureStorage() {
-
 	app.Defaults.LimitOfMessages = app.Config.GetInt64("mongo.messages.limit")
 	return
 
@@ -190,6 +189,7 @@ func (app *App) configureApplication() {
 	a.Get("/histories/*", HistoriesHandler(app))
 	a.Get("/v2/history/*", HistoryV2Handler(app))
 	a.Get("/v2/histories/*", HistoriesV2Handler(app))
+	a.Get("/battletanks/csv", BattletanksCSVHandler(app))
 	a.Get("/:other", NotFoundHandler(app))
 	a.Get("/ps/v2/history*", HistoriesV2PSHandler(app))
 }

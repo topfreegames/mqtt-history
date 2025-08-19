@@ -47,6 +47,7 @@ type QueryParameters struct {
 	Limit      int64
 	PlayerID   string
 	IsBlocked  bool
+	GameID     string
 }
 
 // GetMessages returns messages stored in MongoDB by topic
@@ -150,7 +151,6 @@ func GetMessagesPlayerSupportV2WithParameter(ctx context.Context, queryParameter
 	searchResults := make([]*models.MessageV2, len(rawResults))
 	for i := 0; i < len(rawResults); i++ {
 		searchResults[i], err = convertRawMessageToModelMessage(rawResults[i])
-
 		if err != nil {
 			ext.LogError(span, err, log.Message("Error converting messages from MongoDB"))
 			logger.Logger.Warningf("Error converting messages from MongoDB: %s", err.Error())
@@ -168,8 +168,8 @@ func getMessagesPlayerSupportFromCollection(
 ) ([]MongoMessage, error) {
 	query := resolveQuery(queryParameters)
 	sort := bson.D{
-		{"topic", 1},
-		{"timestamp", -1},
+		{Key: "topic", Value: 1},
+		{Key: "timestamp", Value: -1},
 	}
 
 	statement := ExtractStatementForTrace(query, sort, queryParameters.Limit)
@@ -222,6 +222,10 @@ func resolveQuery(queryParameters QueryParameters) bson.M {
 		query["player_id"] = queryParameters.PlayerID
 	}
 
+	if queryParameters.GameID != "" {
+		query["game_id"] = queryParameters.GameID
+	}
+
 	return query
 }
 
@@ -234,4 +238,94 @@ func ExtractStatementForTrace(query bson.M, sort bson.D, limit int64) string {
 	queryCopy["limit"] = limit
 	statementByteArray, _ := bson.MarshalExtJSON(queryCopy, true, true)
 	return string(statementByteArray)
+}
+
+// GetMessagesByGameIDWithDateFilter returns messages for a specific gameId starting from a specific date
+func GetMessagesByGameIDWithDateFilter(ctx context.Context, queryParameters QueryParameters) []*models.MessageV2 {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "get_messages_by_game_id_with_date_filter")
+	defer span.Finish()
+
+	mongoCollection, err := GetCollection(ctx, queryParameters.Collection)
+	if err != nil {
+		span.SetTag("collection", queryParameters.Collection)
+		ext.LogError(span, err, log.Message("Error getting collection from MongoDB"))
+		logger.Logger.Warningf("Error getting collection from MongoDB: %s", err.Error())
+		return []*models.MessageV2{}
+	}
+
+	rawResults, err := getMessagesByGameIDFromCollection(ctx, queryParameters, mongoCollection)
+	if err != nil {
+		ext.LogError(span, err, log.Message("Error getting messages from MongoDB"))
+		logger.Logger.Warningf("Error getting messages from MongoDB: %s", err.Error())
+		return []*models.MessageV2{}
+	}
+
+	// convert the raw results to the MessageV2 model
+	searchResults := make([]*models.MessageV2, len(rawResults))
+	for i := 0; i < len(rawResults); i++ {
+		searchResults[i], err = convertRawMessageToModelMessage(rawResults[i])
+		if err != nil {
+			ext.LogError(span, err, log.Message("Error converting messages from MongoDB"))
+			logger.Logger.Warningf("Error converting messages from MongoDB: %s", err.Error())
+			return []*models.MessageV2{}
+		}
+	}
+
+	return searchResults
+}
+
+func getMessagesByGameIDFromCollection(
+	ctx context.Context,
+	queryParameters QueryParameters,
+	mongoCollection *mongo.Collection,
+) ([]MongoMessage, error) {
+	query := bson.M{
+		"game_id": queryParameters.GameID,
+		"timestamp": bson.M{
+			"$gte": queryParameters.From,
+		},
+		"blocked": queryParameters.IsBlocked,
+	}
+
+	sort := bson.D{
+		{Key: "timestamp", Value: 1}, // Ordenar por timestamp ascendente (mais antigos primeiro)
+	}
+
+	statement := ExtractStatementForTrace(query, sort, queryParameters.Limit)
+	span, ctx := opentracing.StartSpanFromContext(
+		ctx,
+		"get_messages_by_game_id_from_collection",
+		opentracing.Tags{
+			string(ext.DBStatement): statement,
+			string(ext.DBType):      "mongo",
+			string(ext.DBInstance):  mongoCollection.Database().Name(),
+			string(ext.DBUser):      user,
+			"collection":            mongoCollection.Name(),
+		},
+	)
+	defer span.Finish()
+
+	opts := options.Find()
+	opts.SetSort(sort)
+
+	// Set limit - if no limit is specified, use a reasonable default to prevent memory issues
+	limit := queryParameters.Limit
+	if limit <= 0 {
+		limit = 100000 // Default maximum limit to prevent memory issues
+	}
+	opts.SetLimit(limit)
+
+	cursor, err := mongoCollection.Find(ctx, query, opts)
+	if err != nil {
+		ext.LogError(span, err, log.Message("Error finding messages in MongoDB"))
+		return nil, err
+	}
+
+	rawResults := make([]MongoMessage, 0)
+	if err = cursor.All(ctx, &rawResults); err != nil {
+		ext.LogError(span, err, log.Message("Error decoding messages of a cursor from MongoDB"))
+		return nil, err
+	}
+
+	return rawResults, nil
 }
