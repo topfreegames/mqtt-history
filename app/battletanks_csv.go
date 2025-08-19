@@ -45,7 +45,7 @@ func BattletanksCSVHandler(app *App) func(c echo.Context) error {
 			Collection: collection,
 			GameID:     "battletanks",
 			From:       fromTimestamp,
-			Limit:      50000, // Temporary limit to avoid OOM - get 50k messages max
+			Limit:      200000, // Safe limit based on 768MiB memory - ~200k messages max
 		}
 
 		// Set response headers for CSV download first
