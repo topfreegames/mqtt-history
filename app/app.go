@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
+	extnethttpmiddleware "github.com/topfreegames/extensions/middleware"
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo/engine"
@@ -38,6 +39,7 @@ type App struct {
 	Config               *viper.Viper
 	NewRelic             newrelic.Application
 	NumberOfDaysToSearch int
+	DDStatsD             *extnethttpmiddleware.DogStatsD
 	Defaults             *models.Defaults
 	Bucket               *models.Bucket
 }
@@ -66,6 +68,7 @@ func (app *App) Configure() {
 
 	app.configureSentry()
 	app.configureNewRelic()
+	app.configureStatsD()
 	app.configureJaeger()
 
 	app.configureStorage()
@@ -106,6 +109,25 @@ func (app *App) configureNewRelic() {
 
 	app.NewRelic = nr
 	logger.Logger.Info("Initialized New Relic successfully.")
+}
+
+// configureStatsD initializes the DogStatsD client used for the transitional
+// statsd metrics emitted alongside Prometheus. It is a no-op (leaving
+// app.DDStatsD nil) unless extensions.dogstatsd.enabled is true, so the statsd
+// path can be turned off once the Prometheus migration is complete.
+func (app *App) configureStatsD() {
+	if !app.Config.GetBool("extensions.dogstatsd.enabled") {
+		logger.Logger.Info("DogStatsD is not enabled..")
+		return
+	}
+	logger.Logger.Info("Starting DogStatsD..")
+	ddstatsd, err := extnethttpmiddleware.NewDogStatsD(app.Config)
+	if err != nil {
+		logger.Logger.Error("Failed to initialize DogStatsD.", zap.Error(err))
+		panic(fmt.Sprintf("Could not initialize DogStatsD, err: %s", err))
+	}
+	app.DDStatsD = ddstatsd
+	logger.Logger.Info("Initialized DogStatsD successfully.")
 }
 
 func (app *App) configureJaeger() {
@@ -169,8 +191,13 @@ func (app *App) configureApplication() {
 	a.Use(NewSentryMiddleware().Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
-	if app.Config.GetBool("extensions.prometheus.enabled") {
-		a.Use(NewResponseTimeMetricsMiddleware().Serve)
+	// During the statsd -> Prometheus migration both backends can be emitted at
+	// once. The response-time middleware runs if either is enabled; it observes
+	// the Prometheus histogram when prometheus is on and emits the statsd timer
+	// when app.DDStatsD is set (i.e. extensions.dogstatsd.enabled).
+	prometheusEnabled := app.Config.GetBool("extensions.prometheus.enabled")
+	if prometheusEnabled || app.DDStatsD != nil {
+		a.Use(NewResponseTimeMetricsMiddleware(app.DDStatsD, prometheusEnabled).Serve)
 	}
 	// Routes
 	a.Get("/healthcheck", HealthCheckHandler(app))

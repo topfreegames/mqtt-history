@@ -7,6 +7,7 @@ import (
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
+	"github.com/topfreegames/extensions/middleware"
 	"github.com/uber-go/zap"
 )
 
@@ -188,11 +189,23 @@ func (nr *NewRelicMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// ResponseTimeMetricsMiddleware measures the response time of a route and
-// records it into the Prometheus ResponseTimeSeconds histogram.
-type ResponseTimeMetricsMiddleware struct{}
+// statsdMetricName is the legacy statsd timer name, kept for the transitional
+// period while both statsd and Prometheus are emitted in parallel.
+const statsdMetricName = "response_time_milliseconds"
 
-// Serve measures the response time of a route and observes it in seconds.
+// ResponseTimeMetricsMiddleware measures the response time of a route and
+// records it into the Prometheus ResponseTimeSeconds histogram and, during the
+// migration, the legacy DogStatsD timer.
+type ResponseTimeMetricsMiddleware struct {
+	// DDStatsD is the optional statsd client. When nil, no statsd timer is
+	// emitted (Prometheus-only).
+	DDStatsD *middleware.DogStatsD
+	// EmitPrometheus controls whether the Prometheus histogram is observed.
+	EmitPrometheus bool
+}
+
+// Serve measures the response time of a route and reports it to the enabled
+// backends: the Prometheus histogram (seconds) and/or the statsd timer.
 func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
@@ -207,17 +220,36 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 			gameID, _ = metricTagsMap["gameID"].(string)
 		}
 
-		ResponseTimeSeconds.WithLabelValues(
-			route,
-			method,
-			fmt.Sprintf("%d", status),
-			gameID,
-		).Observe(time.Since(startTime).Seconds())
+		timeUsed := time.Since(startTime)
+
+		if responseTimeMiddleware.EmitPrometheus {
+			ResponseTimeSeconds.WithLabelValues(
+				route,
+				method,
+				fmt.Sprintf("%d", status),
+				gameID,
+			).Observe(timeUsed.Seconds())
+		}
+
+		if responseTimeMiddleware.DDStatsD != nil {
+			tags := []string{
+				fmt.Sprintf("route:%s", route),
+				fmt.Sprintf("method:%s", method),
+				fmt.Sprintf("status:%d", status),
+				fmt.Sprintf("gameID:%v", gameID),
+			}
+			responseTimeMiddleware.DDStatsD.Timing(statsdMetricName, timeUsed, tags...)
+		}
+
 		return result
 	}
 }
 
-// NewResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware
-func NewResponseTimeMetricsMiddleware() *ResponseTimeMetricsMiddleware {
-	return &ResponseTimeMetricsMiddleware{}
+// NewResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware.
+// ddStatsD may be nil to disable statsd; emitPrometheus toggles the histogram.
+func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD, emitPrometheus bool) *ResponseTimeMetricsMiddleware {
+	return &ResponseTimeMetricsMiddleware{
+		DDStatsD:       ddStatsD,
+		EmitPrometheus: emitPrometheus,
+	}
 }
