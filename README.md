@@ -118,11 +118,3 @@ internal scraper.
 
 The currently exported metric is `mqtthistory_http_request_duration_seconds`, a histogram of HTTP
 request durations labelled by `route`, `method`, `status` and `gameID`.
-
-It is configured via:
-```
-extensions:
-  prometheus:
-    enabled: true   # registers the response-time middleware and starts the metrics server
-    port: 9090      # internal port the /metrics endpoint listens on
-```
