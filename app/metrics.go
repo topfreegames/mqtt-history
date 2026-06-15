@@ -25,7 +25,7 @@ import (
 // games stays small; revisit if Datadog custom-metric counts grow.
 var ResponseTimeSeconds = promauto.NewHistogramVec(
 	prometheus.HistogramOpts{
-		Name:    "mqtthistory_http_request_duration_seconds",
+		Name:    "http_request_duration_seconds",
 		Help:    "Duration of HTTP requests in seconds.",
 		Buckets: prometheus.DefBuckets,
 	},
