@@ -7,7 +7,6 @@ import (
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo"
-	"github.com/topfreegames/extensions/middleware"
 	"github.com/uber-go/zap"
 )
 
@@ -189,15 +188,11 @@ func (nr *NewRelicMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-const metricName = "response_time_milliseconds"
+// ResponseTimeMetricsMiddleware measures the response time of a route and
+// records it into the Prometheus ResponseTimeSeconds histogram.
+type ResponseTimeMetricsMiddleware struct{}
 
-// ResponseTimeMetricsMiddleware struct encapsulating DDStatsD
-type ResponseTimeMetricsMiddleware struct {
-	DDStatsD *middleware.DogStatsD
-}
-
-// ResponseTimeMetricsMiddleware is a middleware to measure the response time
-// of a route and send it do StatsD
+// Serve measures the response time of a route and observes it in seconds.
 func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
@@ -212,22 +207,17 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 			gameID, _ = metricTagsMap["gameID"].(string)
 		}
 
-		timeUsed := time.Since(startTime)
-
-		tags := []string{
-			fmt.Sprintf("route:%s", route),
-			fmt.Sprintf("method:%s", method),
-			fmt.Sprintf("status:%d", status),
-			fmt.Sprintf("gameID:%v", gameID),
-		}
-		responseTimeMiddleware.DDStatsD.Timing(metricName, timeUsed, tags...)
+		ResponseTimeSeconds.WithLabelValues(
+			route,
+			method,
+			fmt.Sprintf("%d", status),
+			gameID,
+		).Observe(time.Since(startTime).Seconds())
 		return result
 	}
 }
 
-// ResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware
-func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD) *ResponseTimeMetricsMiddleware {
-	return &ResponseTimeMetricsMiddleware{
-		DDStatsD: ddStatsD,
-	}
+// NewResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware
+func NewResponseTimeMetricsMiddleware() *ResponseTimeMetricsMiddleware {
+	return &ResponseTimeMetricsMiddleware{}
 }

@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	newrelic "github.com/newrelic/go-agent"
-	extnethttpmiddleware "github.com/topfreegames/extensions/middleware"
 
 	"github.com/getsentry/raven-go"
 	"github.com/labstack/echo/engine"
@@ -39,7 +38,6 @@ type App struct {
 	Config               *viper.Viper
 	NewRelic             newrelic.Application
 	NumberOfDaysToSearch int
-	DDStatsD             *extnethttpmiddleware.DogStatsD
 	Defaults             *models.Defaults
 	Bucket               *models.Bucket
 }
@@ -68,7 +66,6 @@ func (app *App) Configure() {
 
 	app.configureSentry()
 	app.configureNewRelic()
-	app.configureStatsD()
 	app.configureJaeger()
 
 	app.configureStorage()
@@ -111,17 +108,6 @@ func (app *App) configureNewRelic() {
 	logger.Logger.Info("Initialized New Relic successfully.")
 }
 
-func (app *App) configureStatsD() {
-	logger.Logger.Info("Starting DogStatsD..")
-	ddstatsd, err := extnethttpmiddleware.NewDogStatsD(app.Config)
-	if err != nil {
-		logger.Logger.Error("Failed to initialize DogStatsD.", zap.Error(err))
-		panic(fmt.Sprintf("Could not initialize DogStatsD, err: %s", err))
-	}
-	app.DDStatsD = ddstatsd
-	logger.Logger.Info("Initialized DogStatsD successfully.")
-}
-
 func (app *App) configureJaeger() {
 	logger.Logger.Info("Initializing Jaeger Global Tracer...")
 	cfg, err := config.FromEnv()
@@ -144,6 +130,8 @@ func (app *App) configureJaeger() {
 func (app *App) setConfigurationDefaults() {
 	app.Config.SetDefault("healthcheck.workingText", "WORKING")
 	app.Config.SetDefault("mongo.database", "mqtt")
+	app.Config.SetDefault("extensions.prometheus.enabled", true)
+	app.Config.SetDefault("extensions.prometheus.port", 9090)
 }
 
 func (app *App) loadConfiguration() {
@@ -181,8 +169,8 @@ func (app *App) configureApplication() {
 	a.Use(NewSentryMiddleware().Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
-	if app.Config.GetBool("extensions.dogstatsd.enabled") {
-		a.Use(NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
+	if app.Config.GetBool("extensions.prometheus.enabled") {
+		a.Use(NewResponseTimeMetricsMiddleware().Serve)
 	}
 	// Routes
 	a.Get("/healthcheck", HealthCheckHandler(app))
@@ -215,5 +203,8 @@ func (app *App) OnErrorHandler(err interface{}, stack []byte) {
 
 // Start starts the application
 func (app *App) Start() {
+	if app.Config.GetBool("extensions.prometheus.enabled") {
+		startMetricsServer(app.Config.GetInt("extensions.prometheus.port"))
+	}
 	app.API.Run(app.Engine)
 }
