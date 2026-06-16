@@ -200,8 +200,9 @@ type ResponseTimeMetricsMiddleware struct {
 	// DDStatsD is the optional statsd client. When nil, no statsd timer is
 	// emitted (Prometheus-only).
 	DDStatsD *middleware.DogStatsD
-	// EmitPrometheus controls whether the Prometheus histogram is observed.
-	EmitPrometheus bool
+	// Prometheus is the optional Prometheus client. When nil, no Prometheus
+	// metric is reported.
+	Prometheus *Prometheus
 }
 
 // Serve measures the response time of a route and reports it to the enabled
@@ -222,13 +223,8 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 
 		timeUsed := time.Since(startTime)
 
-		if responseTimeMiddleware.EmitPrometheus {
-			ResponseTimeSeconds.WithLabelValues(
-				route,
-				method,
-				fmt.Sprintf("%d", status),
-				gameID,
-			).Observe(timeUsed.Seconds())
+		if responseTimeMiddleware.Prometheus != nil {
+			responseTimeMiddleware.Prometheus.Timing(timeUsed, route, method, fmt.Sprintf("%d", status), gameID)
 		}
 
 		if responseTimeMiddleware.DDStatsD != nil {
@@ -246,10 +242,11 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 }
 
 // NewResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware.
-// ddStatsD may be nil to disable statsd; emitPrometheus toggles the histogram.
-func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD, emitPrometheus bool) *ResponseTimeMetricsMiddleware {
+// Either argument may be nil to disable that backend: ddStatsD nil disables
+// statsd, prom nil disables Prometheus.
+func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD, prom *Prometheus) *ResponseTimeMetricsMiddleware {
 	return &ResponseTimeMetricsMiddleware{
-		DDStatsD:       ddStatsD,
-		EmitPrometheus: emitPrometheus,
+		DDStatsD:   ddStatsD,
+		Prometheus: prom,
 	}
 }

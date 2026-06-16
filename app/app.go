@@ -195,9 +195,12 @@ func (app *App) configureApplication() {
 	// once. The response-time middleware runs if either is enabled; it observes
 	// the Prometheus histogram when prometheus is on and emits the statsd timer
 	// when app.DDStatsD is set (i.e. extensions.dogstatsd.enabled).
-	prometheusEnabled := app.Config.GetBool("extensions.prometheus.enabled")
-	if prometheusEnabled || app.DDStatsD != nil {
-		a.Use(NewResponseTimeMetricsMiddleware(app.DDStatsD, prometheusEnabled).Serve)
+	var prom *Prometheus
+	if app.Config.GetBool("extensions.prometheus.enabled") {
+		prom = NewPrometheus()
+	}
+	if prom != nil || app.DDStatsD != nil {
+		a.Use(NewResponseTimeMetricsMiddleware(app.DDStatsD, prom).Serve)
 	}
 	// Routes
 	a.Get("/healthcheck", HealthCheckHandler(app))

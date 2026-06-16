@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -31,6 +32,26 @@ var ResponseTimeSeconds = promauto.NewHistogramVec(
 	},
 	[]string{"route", "method", "status", "gameID"},
 )
+
+// Prometheus is a thin metrics client: the
+// middleware reports through it instead of touching collectors directly, so new
+// metrics can be added here without changing the middleware wiring. A nil
+// *Prometheus means the Prometheus backend is disabled.
+type Prometheus struct {
+	responseTime *prometheus.HistogramVec
+}
+
+// NewPrometheus returns a Prometheus metrics client backed by the package-level
+// collectors (registered once at init to stay test-safe).
+func NewPrometheus() *Prometheus {
+	return &Prometheus{responseTime: ResponseTimeSeconds}
+}
+
+// Timing observes an HTTP request duration (in seconds), mirroring
+// DogStatsD.Timing.
+func (p *Prometheus) Timing(value time.Duration, route, method, status, gameID string) {
+	p.responseTime.WithLabelValues(route, method, status, gameID).Observe(value.Seconds())
+}
 
 // startMetricsServer exposes the Prometheus /metrics endpoint on a dedicated
 // internal HTTP server, separate from the public Echo API. Company policy
