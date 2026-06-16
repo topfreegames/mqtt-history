@@ -111,7 +111,15 @@ func (app *App) configureNewRelic() {
 	logger.Logger.Info("Initialized New Relic successfully.")
 }
 
+// configureStatsD initializes the DogStatsD client used for the transitional
+// statsd metrics emitted alongside Prometheus. It is a no-op (leaving
+// app.DDStatsD nil) unless extensions.dogstatsd.enabled is true, so the statsd
+// path can be turned off once the Prometheus migration is complete.
 func (app *App) configureStatsD() {
+	if !app.Config.GetBool("extensions.dogstatsd.enabled") {
+		logger.Logger.Info("DogStatsD is not enabled..")
+		return
+	}
 	logger.Logger.Info("Starting DogStatsD..")
 	ddstatsd, err := extnethttpmiddleware.NewDogStatsD(app.Config)
 	if err != nil {
@@ -144,6 +152,8 @@ func (app *App) configureJaeger() {
 func (app *App) setConfigurationDefaults() {
 	app.Config.SetDefault("healthcheck.workingText", "WORKING")
 	app.Config.SetDefault("mongo.database", "mqtt")
+	app.Config.SetDefault("extensions.prometheus.enabled", true)
+	app.Config.SetDefault("extensions.prometheus.port", 9090)
 }
 
 func (app *App) loadConfiguration() {
@@ -181,8 +191,16 @@ func (app *App) configureApplication() {
 	a.Use(NewSentryMiddleware().Serve)
 	a.Use(VersionMiddleware)
 	a.Use(NewRecoveryMiddleware(app.OnErrorHandler).Serve)
-	if app.Config.GetBool("extensions.dogstatsd.enabled") {
-		a.Use(NewResponseTimeMetricsMiddleware(app.DDStatsD).Serve)
+	// During the statsd -> Prometheus migration both backends can be emitted at
+	// once. The response-time middleware runs if either is enabled; it observes
+	// the Prometheus histogram when prometheus is on and emits the statsd timer
+	// when app.DDStatsD is set (i.e. extensions.dogstatsd.enabled).
+	var prom *Prometheus
+	if app.Config.GetBool("extensions.prometheus.enabled") {
+		prom = NewPrometheus()
+	}
+	if prom != nil || app.DDStatsD != nil {
+		a.Use(NewResponseTimeMetricsMiddleware(app.DDStatsD, prom).Serve)
 	}
 	// Routes
 	a.Get("/healthcheck", HealthCheckHandler(app))
@@ -215,5 +233,8 @@ func (app *App) OnErrorHandler(err interface{}, stack []byte) {
 
 // Start starts the application
 func (app *App) Start() {
+	if app.Config.GetBool("extensions.prometheus.enabled") {
+		startMetricsServer(app.Config.GetInt("extensions.prometheus.port"))
+	}
 	app.API.Run(app.Engine)
 }

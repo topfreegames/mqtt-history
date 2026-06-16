@@ -17,6 +17,7 @@ services:
       - JAEGER_SAMPLER_PARAM=1.0
     ports:
       - "8888:8888"
+      - "9090:9090"
     depends_on:
       - mosquitto
   mongo:

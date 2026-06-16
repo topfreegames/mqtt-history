@@ -189,15 +189,24 @@ func (nr *NewRelicMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-const metricName = "response_time_milliseconds"
+// statsdMetricName is the legacy statsd timer name, kept for the transitional
+// period while both statsd and Prometheus are emitted in parallel.
+const statsdMetricName = "response_time_milliseconds"
 
-// ResponseTimeMetricsMiddleware struct encapsulating DDStatsD
+// ResponseTimeMetricsMiddleware measures the response time of a route and
+// records it into the Prometheus ResponseTimeSeconds histogram and, during the
+// migration, the legacy DogStatsD timer.
 type ResponseTimeMetricsMiddleware struct {
+	// DDStatsD is the optional statsd client. When nil, no statsd timer is
+	// emitted (Prometheus-only).
 	DDStatsD *middleware.DogStatsD
+	// Prometheus is the optional Prometheus client. When nil, no Prometheus
+	// metric is reported.
+	Prometheus *Prometheus
 }
 
-// ResponseTimeMetricsMiddleware is a middleware to measure the response time
-// of a route and send it do StatsD
+// Serve measures the response time of a route and reports it to the enabled
+// backends: the Prometheus histogram (seconds) and/or the statsd timer.
 func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
@@ -214,20 +223,30 @@ func (responseTimeMiddleware ResponseTimeMetricsMiddleware) Serve(next echo.Hand
 
 		timeUsed := time.Since(startTime)
 
-		tags := []string{
-			fmt.Sprintf("route:%s", route),
-			fmt.Sprintf("method:%s", method),
-			fmt.Sprintf("status:%d", status),
-			fmt.Sprintf("gameID:%v", gameID),
+		if responseTimeMiddleware.Prometheus != nil {
+			responseTimeMiddleware.Prometheus.Timing(timeUsed, route, method, fmt.Sprintf("%d", status), gameID)
 		}
-		responseTimeMiddleware.DDStatsD.Timing(metricName, timeUsed, tags...)
+
+		if responseTimeMiddleware.DDStatsD != nil {
+			tags := []string{
+				fmt.Sprintf("route:%s", route),
+				fmt.Sprintf("method:%s", method),
+				fmt.Sprintf("status:%d", status),
+				fmt.Sprintf("gameID:%v", gameID),
+			}
+			responseTimeMiddleware.DDStatsD.Timing(statsdMetricName, timeUsed, tags...)
+		}
+
 		return result
 	}
 }
 
-// ResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware
-func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD) *ResponseTimeMetricsMiddleware {
+// NewResponseTimeMetricsMiddleware returns a new ResponseTimeMetricsMiddleware.
+// Either argument may be nil to disable that backend: ddStatsD nil disables
+// statsd, prom nil disables Prometheus.
+func NewResponseTimeMetricsMiddleware(ddStatsD *middleware.DogStatsD, prom *Prometheus) *ResponseTimeMetricsMiddleware {
 	return &ResponseTimeMetricsMiddleware{
-		DDStatsD: ddStatsD,
+		DDStatsD:   ddStatsD,
+		Prometheus: prom,
 	}
 }

@@ -108,4 +108,13 @@ OpenTracing is used to report traces. The client implementation used is Jaeger's
 
 ## Metrics
 
-Metrics are exported using [Datadog's statsd](https://github.com/DataDog/datadog-go) client package.
+Metrics follow the [OpenMetrics](https://openmetrics.io/) standard and are exported with the
+[Prometheus client](https://github.com/prometheus/client_golang) package.
+
+The `/metrics` endpoint is served by a **dedicated HTTP server on a separate port**
+(default `9090`) and is intentionally NOT registered on the public API (port `8888` locally). This
+keeps the metrics endpoint off the public application surface so it can be exposed only to an
+internal scraper.
+
+The currently exported metric is `mqtthistory_http_request_duration_seconds`, a histogram of HTTP
+request durations labelled by `route`, `method`, `status` and `gameID`.

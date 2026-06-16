@@ -13,8 +13,6 @@ mongo:
 logger:
   level: "debug"
 extensions:
-  dogstatsd:
-    host: localhost:8125
-    prefix: mqtthistory.
-    tags_prefix: ""
-    rate: 1
+  prometheus:
+    enabled: true
+    port: 9090

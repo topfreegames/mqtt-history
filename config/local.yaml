@@ -13,6 +13,11 @@ mongo:
 logger:
   level: "debug"
 extensions:
+  prometheus:
+    enabled: true
+    port: 9090
+  # Transitional: statsd is emitted in parallel with Prometheus until the
+  # migration is complete. Set enabled: false (or remove) to disable it.
   dogstatsd:
     host: localhost:8125
     prefix: mqtthistory.
