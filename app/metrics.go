@@ -47,8 +47,8 @@ func NewPrometheus() *Prometheus {
 	return &Prometheus{responseTime: ResponseTimeSeconds}
 }
 
-// Timing observes an HTTP request duration (in seconds), mirroring
-// DogStatsD.Timing.
+// Timing observes an HTTP request duration (in seconds) in the response-time
+// histogram.
 func (p *Prometheus) Timing(value time.Duration, route, method, status, gameID string) {
 	p.responseTime.WithLabelValues(route, method, status, gameID).Observe(value.Seconds())
 }
