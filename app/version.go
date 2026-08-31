@@ -1,4 +1,4 @@
 package app
 
 // VERSION is the current api version
-var VERSION = "6.1.0"
+var VERSION = "6.0.1"
