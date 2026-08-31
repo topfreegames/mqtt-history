@@ -16,6 +16,7 @@ func HistoriesHandler(app *App) func(c echo.Context) error {
 		c.Set("route", "Histories")
 		topicPrefix := c.ParamValues()[0]
 		topicsSuffix, userID, from, limit := ParseHistoriesQueryParams(c, app.Defaults.LimitOfMessages)
+
 		topics := make([]string, len(topicsSuffix))
 
 		for i, topicSuffix := range topicsSuffix {

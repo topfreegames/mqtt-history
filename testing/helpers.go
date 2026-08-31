@@ -93,6 +93,10 @@ func InsertMongoMessages(ctx context.Context, topics []string) error {
 }
 
 func InsertMongoMessagesWithParameters(ctx context.Context, topics []string, blocked bool) error {
+	return InsertMongoMessagesWithTimestamp(ctx, topics, blocked, time.Now().Unix())
+}
+
+func InsertMongoMessagesWithTimestamp(ctx context.Context, topics []string, blocked bool, timestamp int64) error {
 	var messages []interface{}
 	for i, topic := range topics {
 		message := models.MessageV2{
@@ -101,7 +105,7 @@ func InsertMongoMessagesWithParameters(ctx context.Context, topics []string, blo
 			PlayerId:       "test",
 			Blocked:        blocked,
 			ShouldModerate: true,
-			Timestamp:      time.Now().AddDate(0, 0, -i).Unix(),
+			Timestamp:      timestamp,
 			Payload: bson.M{
 				fmt.Sprintf("test %d", i): fmt.Sprintf("test %d", i+1),
 			},

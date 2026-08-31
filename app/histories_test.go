@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	goblin "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
@@ -144,6 +145,25 @@ func TestHistoriesHandler(t *testing.T) {
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 				g.Assert(len(messages)).Equal(2)
+			})
+
+			g.It("It should return a message stored with a millisecond timestamp", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test/%s", testID)
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithTimestamp(ctx, []string{topic}, false, time.Now().UnixMilli())
+				Expect(err).To(BeNil())
+
+				var messages []models.Message
+				path := fmt.Sprintf("/histories/chat/test?userid=test:test&topics=%s&from=%d", testID, time.Now().UnixMilli())
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+				Expect(json.Unmarshal([]byte(body), &messages)).To(BeNil())
+				g.Assert(len(messages)).Equal(1)
+				g.Assert(messages[0].Timestamp.Year()).Equal(time.Now().Year())
 			})
 		})
 	})
