@@ -92,16 +92,31 @@ func InsertMongoMessages(ctx context.Context, topics []string) error {
 	return InsertMongoMessagesWithParameters(ctx, topics, false)
 }
 
+// InsertMongoMessagesWithParameters gives each message a distinct timestamp, one day apart.
 func InsertMongoMessagesWithParameters(ctx context.Context, topics []string, blocked bool) error {
+	return insertMongoMessages(ctx, topics, blocked, nil)
+}
+
+// InsertMongoMessagesWithTimestamp stores the given timestamp on every message.
+func InsertMongoMessagesWithTimestamp(ctx context.Context, topics []string, blocked bool, timestamp int64) error {
+	return insertMongoMessages(ctx, topics, blocked, &timestamp)
+}
+
+func insertMongoMessages(ctx context.Context, topics []string, blocked bool, fixedTimestamp *int64) error {
 	var messages []interface{}
 	for i, topic := range topics {
+		timestamp := time.Now().AddDate(0, 0, -i).Unix()
+		if fixedTimestamp != nil {
+			timestamp = *fixedTimestamp
+		}
+
 		message := models.MessageV2{
 			Id:             strconv.FormatInt(int64(i), 10),
 			GameId:         "game test",
 			PlayerId:       "test",
 			Blocked:        blocked,
 			ShouldModerate: true,
-			Timestamp:      time.Now().AddDate(0, 0, -i).Unix(),
+			Timestamp:      timestamp,
 			Payload: bson.M{
 				fmt.Sprintf("test %d", i): fmt.Sprintf("test %d", i+1),
 			},

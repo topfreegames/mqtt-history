@@ -66,10 +66,19 @@ func GetMessages(ctx context.Context, queryParameters QueryParameters) []*models
 	return messages
 }
 
+// In seconds this value is the year 5138, and in milliseconds it is the year 1973.
+const maxSecondsTimestamp = int64(1e11)
+
 func ConvertMessageV2ToMessage(messagev2 *models.MessageV2) *models.Message {
 	pBytes, _ := json.Marshal(messagev2.Payload)
+
+	timestamp := time.Unix(messagev2.Timestamp, 0)
+	if messagev2.Timestamp > maxSecondsTimestamp {
+		timestamp = time.UnixMilli(messagev2.Timestamp)
+	}
+
 	return &models.Message{
-		Timestamp: time.Unix(messagev2.Timestamp, 0),
+		Timestamp: timestamp,
 		Payload:   string(pBytes),
 		Topic:     messagev2.Topic,
 	}

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	goblin "github.com/franela/goblin"
 	. "github.com/onsi/gomega"
@@ -206,6 +207,72 @@ func TestHistoryHandler(t *testing.T) {
 				err = json.Unmarshal([]byte(body), &messages)
 				Expect(err).To(BeNil())
 
+				g.Assert(len(messages)).Equal(1)
+			})
+
+			g.It("It should separate blocked from unblocked messages on the same topic", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+				userID := "test:test"
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithParameters(ctx, []string{topic, topic}, false)
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithParameters(ctx, []string{topic}, true)
+				Expect(err).To(BeNil())
+
+				var unblocked []models.Message
+				status, body := Get(a, fmt.Sprintf("/history/%s?userid=%s&limit=1000", topic, userID), t)
+				g.Assert(status).Equal(http.StatusOK)
+				Expect(json.Unmarshal([]byte(body), &unblocked)).To(BeNil())
+				g.Assert(len(unblocked)).Equal(2)
+
+				var blocked []models.Message
+				status, body = Get(a, fmt.Sprintf("/history/%s?userid=%s&limit=1000&isBlocked=true", topic, userID), t)
+				g.Assert(status).Equal(http.StatusOK)
+				Expect(json.Unmarshal([]byte(body), &blocked)).To(BeNil())
+				g.Assert(len(blocked)).Equal(1)
+			})
+
+			g.It("It should return a message stored with a millisecond timestamp", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+				userID := "test:test"
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithTimestamp(ctx, []string{topic}, false, time.Now().UnixMilli())
+				Expect(err).To(BeNil())
+
+				var messages []models.Message
+				path := fmt.Sprintf("/history/%s?userid=%s&from=%d", topic, userID, time.Now().UnixMilli())
+				status, body := Get(a, path, t)
+				g.Assert(status).Equal(http.StatusOK)
+				Expect(json.Unmarshal([]byte(body), &messages)).To(BeNil())
+				g.Assert(len(messages)).Equal(1)
+				g.Assert(messages[0].Timestamp.Year()).Equal(time.Now().Year())
+			})
+
+			g.It("It should accept a from that lies in the future", func() {
+				testID := strings.Replace(uuid.NewV4().String(), "-", "", -1)
+				topic := fmt.Sprintf("chat/test_%s", testID)
+				userID := "test:test"
+
+				err := AuthorizeTestUserInTopics(ctx, []string{topic})
+				Expect(err).To(BeNil())
+
+				err = InsertMongoMessagesWithParameters(ctx, []string{topic}, false)
+				Expect(err).To(BeNil())
+
+				var messages []models.Message
+				future := time.Now().Add(48 * time.Hour).Unix()
+				status, body := Get(a, fmt.Sprintf("/history/%s?userid=%s&from=%d", topic, userID, future), t)
+				g.Assert(status).Equal(http.StatusOK)
+				Expect(json.Unmarshal([]byte(body), &messages)).To(BeNil())
 				g.Assert(len(messages)).Equal(1)
 			})
 		})

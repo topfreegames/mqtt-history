@@ -65,6 +65,24 @@ and up) and docker-compose.
 
 To run the tests simply run `make test`
 
+## Query parameters
+
+The history endpoints accept these query parameters.
+
+| Parameter | Default | Description |
+|---|---|---|
+| `userid` | none, required | The user that asks for the history. The service checks that this user is authorized on the topic. |
+| `from` | the current time | A Unix timestamp **in seconds**. The service returns messages with a timestamp lower than or equal to this value, so it acts as an upper bound. A value in the future returns the most recent messages. |
+| `limit` | `mongo.messages.limit` | The largest number of messages to return. |
+| `isBlocked` | `false` | Selects moderated messages. `false` returns only messages that moderation allowed. `true` returns only messages that moderation blocked. |
+
+Only `/history/:topic` and `/v2/history/:topic` accept `isBlocked`. The batch endpoints
+`/histories` and `/v2/histories` ignore it and always return messages that moderation allowed.
+
+`isBlocked=true` returns documents whose `original_payload` can hold the original text of a
+blocked message, which moderation replaced in the `message` field. Use it for moderation
+tooling, and not for a game client.
+
 ## Authorization
 
 The project supports checking whether a user is authorized to retrieve the message history for a given topic.

@@ -15,7 +15,8 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "History")
 		topic := c.ParamValues()[0]
-		userID, from, limit, _ := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
+		userID, from, limit, isBlocked := ParseHistoryQueryParams(c, app.Defaults.LimitOfMessages)
+
 		authenticated, _, err := IsAuthorized(c, app, userID, topic)
 		if err != nil {
 			return err
@@ -38,6 +39,7 @@ func HistoryHandler(app *App) func(c echo.Context) error {
 				From:       from,
 				Limit:      limit,
 				Collection: collection,
+				IsBlocked:  isBlocked,
 			},
 		)
 
