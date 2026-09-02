@@ -102,12 +102,12 @@ func InsertMongoMessagesWithTimestamp(ctx context.Context, topics []string, bloc
 	return insertMongoMessages(ctx, topics, blocked, &timestamp)
 }
 
-func insertMongoMessages(ctx context.Context, topics []string, blocked bool, fixed *int64) error {
+func insertMongoMessages(ctx context.Context, topics []string, blocked bool, fixedTimestamp *int64) error {
 	var messages []interface{}
 	for i, topic := range topics {
 		timestamp := time.Now().AddDate(0, 0, -i).Unix()
-		if fixed != nil {
-			timestamp = *fixed
+		if fixedTimestamp != nil {
+			timestamp = *fixedTimestamp
 		}
 
 		message := models.MessageV2{
