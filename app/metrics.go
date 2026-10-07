@@ -33,6 +33,15 @@ var ResponseTimeSeconds = promauto.NewHistogramVec(
 	[]string{"route", "method", "status", "gameID"},
 )
 
+// PSCallerCheckTotal counts the caller checks of the player support route by result and caller.
+var PSCallerCheckTotal = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "ps_caller_check_total",
+		Help: "Caller checks of the player support route.",
+	},
+	[]string{"result", "caller"},
+)
+
 // Prometheus is a thin metrics client: the
 // middleware reports through it instead of touching collectors directly, so new
 // metrics can be added here without changing the middleware wiring. A nil

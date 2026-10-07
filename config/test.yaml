@@ -16,3 +16,10 @@ extensions:
   prometheus:
     enabled: true
     port: 9090
+ps:
+  auth:
+    mode: "off"
+    callers: "test"
+    credentials:
+      test: "test-user:test-password"
+    addresses: "testaddress=192.0.2.10"

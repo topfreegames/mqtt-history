@@ -14,6 +14,10 @@ import (
 func HistoriesV2PSHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		c.Set("route", "HistoriesV2PlayerSupport")
+		if !psCallerAllowed(app, c) {
+			return c.String(echo.ErrUnauthorized.Code, echo.ErrUnauthorized.Message)
+		}
+
 		userID, playerId, topic, limit, isBlocked := ParseHistoryPSQueryParams(c, app.Defaults.LimitOfMessages)
 
 		initialDateParamsFilter := c.QueryParam("initialDate")

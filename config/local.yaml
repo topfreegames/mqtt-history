@@ -16,3 +16,6 @@ extensions:
   prometheus:
     enabled: true
     port: 9090
+ps:
+  auth:
+    mode: "off"
