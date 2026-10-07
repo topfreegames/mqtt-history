@@ -39,12 +39,33 @@ func GetDefaultTestApp() *app.App {
 	return app
 }
 
-// Get implements the GET http verb for testing purposes
-func Get(app *app.App, url string, t *testing.T) (int, string) {
-	return doRequest(app, "GET", url, "")
+// GetTestAppWithConfig retrieves a test app built with the given config values
+func GetTestAppWithConfig(values map[string]interface{}) *app.App {
+	previous := make(map[string]interface{}, len(values))
+	for key, value := range values {
+		previous[key] = viper.Get(key)
+		viper.Set(key, value)
+	}
+	defer func() {
+		for key, value := range previous {
+			viper.Set(key, value)
+		}
+	}()
+
+	return GetDefaultTestApp()
 }
 
-func doRequest(app *app.App, method, url, body string) (int, string) {
+// Get implements the GET http verb for testing purposes
+func Get(app *app.App, url string, t *testing.T) (int, string) {
+	return doRequest(app, "GET", url, "", nil)
+}
+
+// GetWithHeaders implements the GET http verb with request headers for testing purposes
+func GetWithHeaders(app *app.App, url string, headers map[string]string, t *testing.T) (int, string) {
+	return doRequest(app, "GET", url, "", headers)
+}
+
+func doRequest(app *app.App, method, url, body string, headers map[string]string) (int, string) {
 	app.Engine.SetHandler(app.API)
 	ts := httptest.NewServer(app.Engine.(*standard.Server))
 	defer ts.Close()
@@ -55,6 +76,9 @@ func doRequest(app *app.App, method, url, body string) (int, string) {
 	}
 	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", ts.URL, url), reader)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 
 	client := &http.Client{}
 	res, err := client.Do(req)
