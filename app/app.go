@@ -40,6 +40,7 @@ type App struct {
 	NumberOfDaysToSearch int
 	Defaults             *models.Defaults
 	Bucket               *models.Bucket
+	PSAuth               *PSAuth
 }
 
 // GetApp creates an app given the parameters
@@ -132,6 +133,7 @@ func (app *App) setConfigurationDefaults() {
 	app.Config.SetDefault("mongo.database", "mqtt")
 	app.Config.SetDefault("extensions.prometheus.enabled", true)
 	app.Config.SetDefault("extensions.prometheus.port", 9090)
+	app.Config.SetDefault("ps.auth.mode", psAuthModeOff)
 }
 
 func (app *App) loadConfiguration() {
@@ -157,6 +159,12 @@ func (app *App) configureSentry() {
 }
 
 func (app *App) configureApplication() {
+	psAuth, err := loadPSAuth(app.Config)
+	if err != nil {
+		panic(fmt.Sprintf("Could not load ps.auth configuration, err: %s", err))
+	}
+	app.PSAuth = psAuth
+
 	app.Engine = standard.New(fmt.Sprintf("%s:%d", app.Host, app.Port))
 	app.NumberOfDaysToSearch = app.Config.GetInt("numberOfDaysToSearch")
 	app.API = echo.New()
