@@ -108,6 +108,52 @@ httpAuth:
       username: user
       password: pass
 ```
+
+### Player support route
+
+The `/ps/v2/history` route has its own caller check. The check accepts a request in two cases:
+
+- The request carries the Basic auth credential of a listed caller.
+- The `X-Real-IP` header is equal to a listed address. ingress-nginx sets this header from the client connection.
+
+The check ignores `X-Forwarded-For`, because a client can set it.
+
+```
+ps:
+  auth:
+    mode: "enforce" # off, log or enforce
+    callers: "tennis,soccer" # names of the callers with a credential
+    credentials:
+      tennis: "user:password" # the value splits at the first colon
+      soccer: "user:password"
+    addresses: "databricks=192.0.2.10" # comma list of name=ip
+```
+
+| Mode | Effect |
+|---|---|
+| `off` | The default. The service does not check the caller and does not count it. |
+| `log` | The service checks and counts every request, and logs a warning for a refused request. Every request passes. |
+| `enforce` | Same as `log`, but a refused request gets HTTP 401. |
+
+In `log` and `enforce` mode the service does not start when the configuration has an error:
+an unknown mode, a listed caller with no `user:password` value, an address that is not `name=ip`,
+or no caller and no address.
+
+Each key has an environment variable:
+
+| Key | Environment variable |
+|---|---|
+| `ps.auth.mode` | `MQTTHISTORY_PS_AUTH_MODE` |
+| `ps.auth.callers` | `MQTTHISTORY_PS_AUTH_CALLERS` |
+| `ps.auth.credentials.<name>` | `MQTTHISTORY_PS_AUTH_CREDENTIALS_<NAME>` |
+| `ps.auth.addresses` | `MQTTHISTORY_PS_AUTH_ADDRESSES` |
+
+The warning log line names the mode, the host, `X-Real-IP`, the user agent and the Basic auth user name, or `none`.
+It never contains the password.
+
+Limit: the address check trusts `X-Real-IP`. A caller inside the cluster that sends requests to the
+Service directly, and not through ingress-nginx, can set `X-Real-IP` itself.
+
 ## Observability
 
 ### Logs
@@ -134,5 +180,10 @@ The `/metrics` endpoint is served by a **dedicated HTTP server on a separate por
 keeps the metrics endpoint off the public application surface so it can be exposed only to an
 internal scraper.
 
-The currently exported metric is `mqtthistory_http_request_duration_seconds`, a histogram of HTTP
-request durations labelled by `route`, `method`, `status` and `gameID`.
+The service exports two metrics:
+
+- `mqtthistory_http_request_duration_seconds`, a histogram of HTTP request durations labelled by
+  `route`, `method`, `status` and `gameID`.
+- `mqtthistory_ps_caller_check_total`, a counter of the caller checks of `/ps/v2/history` in `log`
+  and `enforce` mode. Its labels are `result` (`credential`, `address` or `refused`) and `caller`
+  (the caller name, or `unknown` for a refused request).
