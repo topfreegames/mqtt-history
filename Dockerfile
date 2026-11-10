@@ -18,7 +18,9 @@ RUN ldd /src/mqtt-history 2>&1 | grep -q 'Not a valid dynamic program'
 RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o setup_mongo_messages-index ./scripts/setup_mongo_messages-index.go
 RUN ldd /src/setup_mongo_messages-index 2>&1 | grep -q 'Not a valid dynamic program'
 
-FROM alpine:3.13
+FROM alpine:3.24
+
+RUN apk add --no-cache --upgrade 'ca-certificates>=20261020-r0' 'ca-certificates-bundle>=20261020-r0'
 
 COPY --from=build /src/mqtt-history ./mqtt-history
 COPY --from=build /src/setup_mongo_messages-index ./setup_mongo_messages-index
