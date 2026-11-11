@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine AS build
+FROM golang:1.27.3-alpine AS build
 
 LABEL maintainer="backend@tfgco.com"
 
