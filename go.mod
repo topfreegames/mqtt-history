@@ -1,6 +1,6 @@
 module github.com/topfreegames/mqtt-history
 
-go 1.18
+go 1.27.3
 
 require (
 	github.com/franela/goblin v0.0.0-20180407132755-cd5d08fb4ede
