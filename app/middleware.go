@@ -42,7 +42,7 @@ func (r RecoveryMiddleware) Serve(next echo.HandlerFunc) echo.HandlerFunc {
 				if eError, ok := err.(error); ok {
 					c.Error(eError)
 				} else {
-					eError = fmt.Errorf(fmt.Sprintf("%v", err))
+					eError = fmt.Errorf("%v", err)
 					c.Error(eError)
 				}
 			}
